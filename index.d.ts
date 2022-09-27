@@ -5,4011 +5,4502 @@
  */
 
 
+import { AfterContentInit } from '@angular/core';
+import { ChangeDetectorRef } from '@angular/core';
+import { Compiler } from '@angular/core';
+import { ComponentFactoryResolver } from '@angular/core';
+import { ComponentRef } from '@angular/core';
+import { ElementRef } from '@angular/core';
+import { EnvironmentInjector } from '@angular/core';
+import { EventEmitter } from '@angular/core';
 import * as i0 from '@angular/core';
+import { ImportedNgModuleProviders } from '@angular/core';
 import { InjectionToken } from '@angular/core';
 import { Injector } from '@angular/core';
+import { Location as Location_2 } from '@angular/common';
+import { LocationStrategy } from '@angular/common';
 import { ModuleWithProviders } from '@angular/core';
+import { NgModuleFactory } from '@angular/core';
 import { Observable } from 'rxjs';
-import { XhrFactory as XhrFactory_2 } from '@angular/common';
+import { OnChanges } from '@angular/core';
+import { OnDestroy } from '@angular/core';
+import { OnInit } from '@angular/core';
+import { Provider } from '@angular/core';
+import { QueryList } from '@angular/core';
+import { Renderer2 } from '@angular/core';
+import { SimpleChanges } from '@angular/core';
+import { Title } from '@angular/platform-browser';
+import { Type } from '@angular/core';
+import { Version } from '@angular/core';
+import { ViewContainerRef } from '@angular/core';
 
 /**
- * A multi-provider token that represents the array of registered
- * `HttpInterceptor` objects.
+ * Provides access to information about a route associated with a component
+ * that is loaded in an outlet.
+ * Use to traverse the `RouterState` tree and extract information from nodes.
+ *
+ * The following example shows how to construct a component using information from a
+ * currently activated route.
+ *
+ * Note: the observables in this class only emit when the current and previous values differ based
+ * on shallow equality. For example, changing deeply nested properties in resolved `data` will not
+ * cause the `ActivatedRoute.data` `Observable` to emit a new value.
+ *
+ * {@example router/activated-route/module.ts region="activated-route"
+ *     header="activated-route.component.ts"}
+ *
+ * @see [Getting route information](guide/router#getting-route-information)
  *
  * @publicApi
  */
-export declare const HTTP_INTERCEPTORS: InjectionToken<HttpInterceptor[]>;
-
-/**
- * A final `HttpHandler` which will dispatch the request via browser HTTP APIs to a backend.
- *
- * Interceptors sit between the `HttpClient` interface and the `HttpBackend`.
- *
- * When injected, `HttpBackend` dispatches requests directly to the backend, without going
- * through the interceptor chain.
- *
- * @publicApi
- */
-export declare abstract class HttpBackend implements HttpHandler {
-    abstract handle(req: HttpRequest<any>): Observable<HttpEvent<any>>;
+export declare class ActivatedRoute {
+    /** An observable of the URL segments matched by this route. */
+    url: Observable<UrlSegment[]>;
+    /** An observable of the matrix parameters scoped to this route. */
+    params: Observable<Params>;
+    /** An observable of the query parameters shared by all the routes. */
+    queryParams: Observable<Params>;
+    /** An observable of the URL fragment shared by all the routes. */
+    fragment: Observable<string | null>;
+    /** An observable of the static and resolved data of this route. */
+    data: Observable<Data>;
+    /** The outlet name of the route, a constant. */
+    outlet: string;
+    /** The component of the route, a constant. */
+    component: Type<any> | null;
+    /** The current snapshot of this route */
+    snapshot: ActivatedRouteSnapshot;
+    /** An Observable of the resolved route title */
+    readonly title: Observable<string | undefined>;
+    /** The configuration used to match this route. */
+    get routeConfig(): Route | null;
+    /** The root of the router state. */
+    get root(): ActivatedRoute;
+    /** The parent of this route in the router state tree. */
+    get parent(): ActivatedRoute | null;
+    /** The first child of this route in the router state tree. */
+    get firstChild(): ActivatedRoute | null;
+    /** The children of this route in the router state tree. */
+    get children(): ActivatedRoute[];
+    /** The path from the root of the router state tree to this route. */
+    get pathFromRoot(): ActivatedRoute[];
+    /**
+     * An Observable that contains a map of the required and optional parameters
+     * specific to the route.
+     * The map supports retrieving single and multiple values from the same parameter.
+     */
+    get paramMap(): Observable<ParamMap>;
+    /**
+     * An Observable that contains a map of the query parameters available to all routes.
+     * The map supports retrieving single and multiple values from the query parameter.
+     */
+    get queryParamMap(): Observable<ParamMap>;
+    toString(): string;
 }
 
 /**
- * Performs HTTP requests.
- * This service is available as an injectable class, with methods to perform HTTP requests.
- * Each request method has multiple signatures, and the return type varies based on
- * the signature that is called (mainly the values of `observe` and `responseType`).
+ * @description
  *
- * Note that the `responseType` *options* value is a String that identifies the
- * single data type of the response.
- * A single overload version of the method handles each response type.
- * The value of `responseType` cannot be a union, as the combined signature could imply.
-
+ * Contains the information about a route associated with a component loaded in an
+ * outlet at a particular moment in time. ActivatedRouteSnapshot can also be used to
+ * traverse the router state tree.
  *
- * @usageNotes
- * Sample HTTP requests for the [Tour of Heroes](/tutorial/toh-pt0) application.
- *
- * ### HTTP Request Example
+ * The following example initializes a component with route information extracted
+ * from the snapshot of the root node at the time of creation.
  *
  * ```
- *  // GET heroes whose name contains search term
- * searchHeroes(term: string): observable<Hero[]>{
- *
- *  const params = new HttpParams({fromString: 'name=term'});
- *    return this.httpClient.request('GET', this.heroesUrl, {responseType:'json', params});
+ * @Component({templateUrl:'./my-component.html'})
+ * class MyComponent {
+ *   constructor(route: ActivatedRoute) {
+ *     const id: string = route.snapshot.params.id;
+ *     const url: string = route.snapshot.url.join('');
+ *     const user = route.snapshot.data.user;
+ *   }
  * }
  * ```
  *
- * Alternatively, the parameter string can be used without invoking HttpParams
- * by directly joining to the URL.
- * ```
- * this.httpClient.request('GET', this.heroesUrl + '?' + 'name=term', {responseType:'json'});
- * ```
- *
- *
- * ### JSONP Example
- * ```
- * requestJsonp(url, callback = 'callback') {
- *  return this.httpClient.jsonp(this.heroesURL, callback);
- * }
- * ```
- *
- * ### PATCH Example
- * ```
- * // PATCH one of the heroes' name
- * patchHero (id: number, heroName: string): Observable<{}> {
- * const url = `${this.heroesUrl}/${id}`;   // PATCH api/heroes/42
- *  return this.httpClient.patch(url, {name: heroName}, httpOptions)
- *    .pipe(catchError(this.handleError('patchHero')));
- * }
- * ```
- *
- * @see [HTTP Guide](guide/http)
- * @see [HTTP Request](api/common/http/HttpRequest)
- *
  * @publicApi
  */
-export declare class HttpClient {
-    private handler;
-    constructor(handler: HttpHandler);
-    /**
-     * Sends an `HttpRequest` and returns a stream of `HttpEvent`s.
-     *
-     * @return An `Observable` of the response, with the response body as a stream of `HttpEvent`s.
-     */
-    request<R>(req: HttpRequest<any>): Observable<HttpEvent<R>>;
-    /**
-     * Constructs a request that interprets the body as an `ArrayBuffer` and returns the response in
-     * an `ArrayBuffer`.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     *
-     * @return An `Observable` of the response, with the response body as an `ArrayBuffer`.
-     */
-    request(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<ArrayBuffer>;
-    /**
-     * Constructs a request that interprets the body as a blob and returns
-     * the response as a blob.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body of type `Blob`.
-     */
-    request(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<Blob>;
-    /**
-     * Constructs a request that interprets the body as a text string and
-     * returns a string value.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body of type string.
-     */
-    request(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<string>;
-    /**
-     * Constructs a request that interprets the body as an `ArrayBuffer` and returns the
-     * the full event stream.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body as an array of `HttpEvent`s for
-     * the request.
-     */
-    request(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        observe: 'events';
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<ArrayBuffer>>;
-    /**
-     * Constructs a request that interprets the body as a `Blob` and returns
-     * the full event stream.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with the response body of type `Blob`.
-     */
-    request(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Blob>>;
-    /**
-     * Constructs a request which interprets the body as a text string and returns the full event
-     * stream.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with the response body of type string.
-     */
-    request(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<string>>;
-    /**
-     * Constructs a request which interprets the body as a JavaScript object and returns the full
-     * event stream.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the  request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with the response body of type `Object`.
-     */
-    request(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        reportProgress?: boolean;
-        observe: 'events';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<any>>;
-    /**
-     * Constructs a request which interprets the body as a JavaScript object and returns the full
-     * event stream.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with the response body of type `R`.
-     */
-    request<R>(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        reportProgress?: boolean;
-        observe: 'events';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<R>>;
-    /**
-     * Constructs a request which interprets the body as an `ArrayBuffer`
-     * and returns the full `HttpResponse`.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse`, with the response body as an `ArrayBuffer`.
-     */
-    request(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<ArrayBuffer>>;
-    /**
-     * Constructs a request which interprets the body as a `Blob` and returns the full `HttpResponse`.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse`, with the response body of type `Blob`.
-     */
-    request(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Blob>>;
-    /**
-     * Constructs a request which interprets the body as a text stream and returns the full
-     * `HttpResponse`.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the HTTP response, with the response body of type string.
-     */
-    request(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<string>>;
-    /**
-     * Constructs a request which interprets the body as a JavaScript object and returns the full
-     * `HttpResponse`.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the full `HttpResponse`,
-     * with the response body of type `Object`.
-     */
-    request(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        reportProgress?: boolean;
-        observe: 'response';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Object>>;
-    /**
-     * Constructs a request which interprets the body as a JavaScript object and returns
-     * the full `HttpResponse` with the response body in the requested type.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return  An `Observable` of the full `HttpResponse`, with the response body of type `R`.
-     */
-    request<R>(method: string, url: string, options: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        reportProgress?: boolean;
-        observe: 'response';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<R>>;
-    /**
-     * Constructs a request which interprets the body as a JavaScript object and returns the full
-     * `HttpResponse` as a JavaScript object.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse`, with the response body of type `Object`.
-     */
-    request(method: string, url: string, options?: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        responseType?: 'json';
-        reportProgress?: boolean;
-        withCredentials?: boolean;
-    }): Observable<Object>;
-    /**
-     * Constructs a request which interprets the body as a JavaScript object
-     * with the response body of the requested type.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse`, with the response body of type `R`.
-     */
-    request<R>(method: string, url: string, options?: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        responseType?: 'json';
-        reportProgress?: boolean;
-        withCredentials?: boolean;
-    }): Observable<R>;
-    /**
-     * Constructs a request where response type and requested observable are not known statically.
-     *
-     * @param method  The HTTP method.
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the requested response, with body of type `any`.
-     */
-    request(method: string, url: string, options?: {
-        body?: any;
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        observe?: 'body' | 'events' | 'response';
-        reportProgress?: boolean;
-        responseType?: 'arraybuffer' | 'blob' | 'json' | 'text';
-        withCredentials?: boolean;
-    }): Observable<any>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as an `ArrayBuffer`
-     *  and returns the response as an `ArrayBuffer`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return  An `Observable` of the response body as an `ArrayBuffer`.
-     */
-    delete(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<ArrayBuffer>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as a `Blob` and returns
-     * the response as a `Blob`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response body as a `Blob`.
-     */
-    delete(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<Blob>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as a text string and returns
-     * a string.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body of type string.
-     */
-    delete(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<string>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as an `ArrayBuffer`
-     *  and returns the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with response body as an `ArrayBuffer`.
-     */
-    delete(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<HttpEvent<ArrayBuffer>>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as a `Blob`
-     *  and returns the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all the `HttpEvent`s for the request, with the response body as a
-     * `Blob`.
-     */
-    delete(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<HttpEvent<Blob>>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as a text string
-     * and returns the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request, with the response
-     * body of type string.
-     */
-    delete(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<HttpEvent<string>>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as JSON
-     * and returns the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request, with response body of
-     * type `Object`.
-     */
-    delete(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<HttpEvent<Object>>;
-    /**
-     * Constructs a `DELETE`request that interprets the body as JSON
-     * and returns the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all the `HttpEvent`s for the request, with a response
-     * body in the requested type.
-     */
-    delete<T>(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | (string | number | boolean)[];
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<HttpEvent<T>>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as an `ArrayBuffer` and returns
-     *  the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the full `HttpResponse`, with the response body as an `ArrayBuffer`.
-     */
-    delete(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<HttpResponse<ArrayBuffer>>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as a `Blob` and returns the full
-     * `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse`, with the response body of type `Blob`.
-     */
-    delete(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<HttpResponse<Blob>>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as a text stream and
-     *  returns the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the full `HttpResponse`, with the response body of type string.
-     */
-    delete(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<HttpResponse<string>>;
-    /**
-     * Constructs a `DELETE` request the interprets the body as a JavaScript object and returns
-     * the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse`, with the response body of type `Object`.
-     *
-     */
-    delete(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<HttpResponse<Object>>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as JSON
-     * and returns the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse`, with the response body of the requested type.
-     */
-    delete<T>(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<HttpResponse<T>>;
-    /**
-     * Constructs a `DELETE` request that interprets the body as JSON and
-     * returns the response body as an object parsed from JSON.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body of type `Object`.
-     */
-    delete(url: string, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<Object>;
-    /**
-     * Constructs a DELETE request that interprets the body as JSON and returns
-     * the response in a given type.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse`, with response body in the requested type.
-     */
-    delete<T>(url: string, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-        body?: any | null;
-    }): Observable<T>;
-    /**
-     * Constructs a `GET` request that interprets the body as an `ArrayBuffer` and returns the
-     * response in an `ArrayBuffer`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body as an `ArrayBuffer`.
-     */
-    get(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<ArrayBuffer>;
-    /**
-     * Constructs a `GET` request that interprets the body as a `Blob`
-     * and returns the response as a `Blob`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body as a `Blob`.
-     */
-    get(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<Blob>;
-    /**
-     * Constructs a `GET` request that interprets the body as a text string
-     * and returns the response as a string value.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body of type string.
-     */
-    get(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<string>;
-    /**
-     * Constructs a `GET` request that interprets the body as an `ArrayBuffer` and returns
-     *  the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request, with the response
-     * body as an `ArrayBuffer`.
-     */
-    get(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<ArrayBuffer>>;
-    /**
-     * Constructs a `GET` request that interprets the body as a `Blob` and
-     * returns the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body as a `Blob`.
-     */
-    get(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Blob>>;
-    /**
-     * Constructs a `GET` request that interprets the body as a text string and returns
-     * the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body of type string.
-     */
-    get(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<string>>;
-    /**
-     * Constructs a `GET` request that interprets the body as JSON
-     * and returns the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body of type `Object`.
-     */
-    get(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Object>>;
-    /**
-     * Constructs a `GET` request that interprets the body as JSON and returns the full
-     * event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with a response body in the requested type.
-     */
-    get<T>(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<T>>;
-    /**
-     * Constructs a `GET` request that interprets the body as an `ArrayBuffer` and
-     * returns the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body as an `ArrayBuffer`.
-     */
-    get(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<ArrayBuffer>>;
-    /**
-     * Constructs a `GET` request that interprets the body as a `Blob` and
-     * returns the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body as a `Blob`.
-     */
-    get(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Blob>>;
-    /**
-     * Constructs a `GET` request that interprets the body as a text stream and
-     * returns the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body of type string.
-     */
-    get(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<string>>;
-    /**
-     * Constructs a `GET` request that interprets the body as JSON and
-     * returns the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the full `HttpResponse`,
-     * with the response body of type `Object`.
-     */
-    get(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Object>>;
-    /**
-     * Constructs a `GET` request that interprets the body as JSON and
-     * returns the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the full `HttpResponse` for the request,
-     * with a response body in the requested type.
-     */
-    get<T>(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<T>>;
-    /**
-     * Constructs a `GET` request that interprets the body as JSON and
-     * returns the response body as an object parsed from JSON.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     *
-     * @return An `Observable` of the response body as a JavaScript object.
-     */
-    get(url: string, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<Object>;
-    /**
-     * Constructs a `GET` request that interprets the body as JSON and returns
-     * the response body in a given type.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse`, with a response body in the requested type.
-     */
-    get<T>(url: string, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<T>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as an `ArrayBuffer` and
-     * returns the response as an `ArrayBuffer`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body as an `ArrayBuffer`.
-     */
-    head(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<ArrayBuffer>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as a `Blob` and returns
-     * the response as a `Blob`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return  An `Observable` of the response, with the response body as a `Blob`.
-     */
-    head(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<Blob>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as a text string and returns the response
-     * as a string value.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body of type string.
-     */
-    head(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<string>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as an  `ArrayBuffer`
-     *  and returns the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with the response body as an `ArrayBuffer`.
-     */
-    head(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<ArrayBuffer>>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as a `Blob` and
-     * returns the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with the response body as a `Blob`.
-     */
-    head(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Blob>>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as a text string
-     * and returns the full event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request, with the response body of type
-     * string.
-     */
-    head(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<string>>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as JSON
-     * and returns the full HTTP event stream.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request, with a response body of
-     * type `Object`.
-     */
-    head(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Object>>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as JSON and
-     * returns the full event stream.
-     *
-     * @return An `Observable` of all the `HttpEvent`s for the request,
-     * with a response body in the requested type.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     */
-    head<T>(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<T>>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as an `ArrayBuffer`
-     *  and returns the full HTTP response.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body as an `ArrayBuffer`.
-     */
-    head(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<ArrayBuffer>>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as a `Blob` and returns
-     * the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body as a blob.
-     */
-    head(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Blob>>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as text stream
-     * and returns the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body of type string.
-     */
-    head(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<string>>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as JSON and
-     * returns the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body of type `Object`.
-     */
-    head(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Object>>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as JSON
-     * and returns the full `HttpResponse`.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with a response body of the requested type.
-     */
-    head<T>(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<T>>;
-    /**
-
-     * Constructs a `HEAD` request that interprets the body as JSON and
-     * returns the response body as an object parsed from JSON.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the response, with the response body as an object parsed from JSON.
-     */
-    head(url: string, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<Object>;
-    /**
-     * Constructs a `HEAD` request that interprets the body as JSON and returns
-     * the response in a given type.
-     *
-     * @param url     The endpoint URL.
-     * @param options The HTTP options to send with the request.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with a response body of the given type.
-     */
-    head<T>(url: string, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<T>;
-    /**
-     * Constructs a `JSONP` request for the given URL and name of the callback parameter.
-     *
-     * @param url The resource URL.
-     * @param callbackParam The callback function name.
-     *
-     * @return An `Observable` of the response object, with response body as an object.
-     */
-    jsonp(url: string, callbackParam: string): Observable<Object>;
-    /**
-     * Constructs a `JSONP` request for the given URL and name of the callback parameter.
-     *
-     * @param url The resource URL.
-     * @param callbackParam The callback function name.
-     *
-     * You must install a suitable interceptor, such as one provided by `HttpClientJsonpModule`.
-     * If no such interceptor is reached,
-     * then the `JSONP` request can be rejected by the configured backend.
-     *
-     * @return An `Observable` of the response object, with response body in the requested type.
-     */
-    jsonp<T>(url: string, callbackParam: string): Observable<T>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as an
-     * `ArrayBuffer` and returns the response as an `ArrayBuffer`.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the response, with the response body as an `ArrayBuffer`.
-     */
-    options(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<ArrayBuffer>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as a `Blob` and returns
-     * the response as a `Blob`.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the response, with the response body as a `Blob`.
-     */
-    options(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<Blob>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as a text string and
-     * returns a string value.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the response, with the response body of type string.
-     */
-    options(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<string>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as an `ArrayBuffer`
-     *  and returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return  An `Observable` of all `HttpEvent`s for the request,
-     * with the response body as an `ArrayBuffer`.
-     */
-    options(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<ArrayBuffer>>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as a `Blob` and
-     * returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with the response body as a `Blob`.
-     */
-    options(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Blob>>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as a text string
-     * and returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of all the `HttpEvent`s for the request,
-     * with the response body of type string.
-     */
-    options(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<string>>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as JSON
-     * and returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of all the `HttpEvent`s for the request with the response
-     * body of type `Object`.
-     */
-    options(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Object>>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as JSON and
-     * returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of all the `HttpEvent`s for the request,
-     * with a response body in the requested type.
-     */
-    options<T>(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<T>>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as an `ArrayBuffer`
-     *  and returns the full HTTP response.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body as an `ArrayBuffer`.
-     */
-    options(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<ArrayBuffer>>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as a `Blob`
-     *  and returns the full `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body as a `Blob`.
-     */
-    options(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Blob>>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as text stream
-     * and returns the full `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body of type string.
-     */
-    options(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<string>>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as JSON
-     * and returns the full `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body of type `Object`.
-     */
-    options(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Object>>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as JSON and
-     * returns the full `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with a response body in the requested type.
-     */
-    options<T>(url: string, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<T>>;
-    /**
-
-     * Constructs an `OPTIONS` request that interprets the body as JSON and returns the
-     * response body as an object parsed from JSON.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the response, with the response body as an object parsed from JSON.
-     */
-    options(url: string, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<Object>;
-    /**
-     * Constructs an `OPTIONS` request that interprets the body as JSON and returns the
-     * response in a given type.
-     *
-     * @param url The endpoint URL.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the `HttpResponse`, with a response body of the given type.
-     */
-    options<T>(url: string, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<T>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as an `ArrayBuffer` and returns
-     * the response as an `ArrayBuffer`.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the response, with the response body as an `ArrayBuffer`.
-     */
-    patch(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<ArrayBuffer>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as a `Blob` and returns the response
-     * as a `Blob`.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the response, with the response body as a `Blob`.
-     */
-    patch(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<Blob>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as a text string and
-     * returns the response as a string value.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the response, with a response body of type string.
-     */
-    patch(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<string>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as an `ArrayBuffer` and
-     *  returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of all the `HttpEvent`s for the request,
-     * with the response body as an `ArrayBuffer`.
-     */
-    patch(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<ArrayBuffer>>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as a `Blob`
-     *  and returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of all the `HttpEvent`s for the request, with the
-     * response body as `Blob`.
-     */
-    patch(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Blob>>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as a text string and
-     * returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of all the `HttpEvent`s for the request, with a
-     * response body of type string.
-     */
-    patch(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<string>>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as JSON
-     * and returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of all the `HttpEvent`s for the request,
-     * with a response body of type `Object`.
-     */
-    patch(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Object>>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as JSON
-     * and returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of all the `HttpEvent`s for the request,
-     * with a response body in the requested type.
-     */
-    patch<T>(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<T>>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as an `ArrayBuffer`
-     *  and returns the full `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return  An `Observable` of the `HttpResponse` for the request,
-     * with the response body as an `ArrayBuffer`.
-     */
-    patch(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<ArrayBuffer>>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as a `Blob` and returns the full
-     * `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return  An `Observable` of the `HttpResponse` for the request,
-     * with the response body as a `Blob`.
-     */
-    patch(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Blob>>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as a text stream and returns the
-     * full `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return  An `Observable` of the `HttpResponse` for the request,
-     * with a response body of type string.
-     */
-    patch(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<string>>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as JSON
-     * and returns the full `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with a response body in the requested type.
-     */
-    patch(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Object>>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as JSON
-     * and returns the full `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with a response body in the given type.
-     */
-    patch<T>(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<T>>;
-    /**
-
-     * Constructs a `PATCH` request that interprets the body as JSON and
-     * returns the response body as an object parsed from JSON.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the response, with the response body as an object parsed from JSON.
-     */
-    patch(url: string, body: any | null, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<Object>;
-    /**
-     * Constructs a `PATCH` request that interprets the body as JSON
-     * and returns the response in a given type.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to edit.
-     * @param options HTTP options.
-     *
-     * @return  An `Observable` of the `HttpResponse` for the request,
-     * with a response body in the given type.
-     */
-    patch<T>(url: string, body: any | null, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<T>;
-    /**
-     * Constructs a `POST` request that interprets the body as an `ArrayBuffer` and returns
-     * an `ArrayBuffer`.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options.
-     *
-     * @return An `Observable` of the response, with the response body as an `ArrayBuffer`.
-     */
-    post(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<ArrayBuffer>;
-    /**
-     * Constructs a `POST` request that interprets the body as a `Blob` and returns the
-     * response as a `Blob`.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the response, with the response body as a `Blob`.
-     */
-    post(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<Blob>;
-    /**
-     * Constructs a `POST` request that interprets the body as a text string and
-     * returns the response as a string value.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the response, with a response body of type string.
-     */
-    post(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<string>;
-    /**
-     * Constructs a `POST` request that interprets the body as an `ArrayBuffer` and
-     * returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with the response body as an `ArrayBuffer`.
-     */
-    post(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<ArrayBuffer>>;
-    /**
-     * Constructs a `POST` request that interprets the body as a `Blob`
-     * and returns the response in an observable of the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request, with the response body as `Blob`.
-     */
-    post(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Blob>>;
-    /**
-     * Constructs a `POST` request that interprets the body as a text string and returns the full
-     * event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return  An `Observable` of all `HttpEvent`s for the request,
-     * with a response body of type string.
-     */
-    post(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<string>>;
-    /**
-     * Constructs a POST request that interprets the body as JSON and returns the full
-     * event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return  An `Observable` of all `HttpEvent`s for the request,
-     * with a response body of type `Object`.
-     */
-    post(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Object>>;
-    /**
-     * Constructs a POST request that interprets the body as JSON and returns the full
-     * event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with a response body in the requested type.
-     */
-    post<T>(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<T>>;
-    /**
-     * Constructs a POST request that interprets the body as an `ArrayBuffer`
-     *  and returns the full `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return  An `Observable` of the `HttpResponse` for the request, with the response body as an
-     * `ArrayBuffer`.
-     */
-    post(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<ArrayBuffer>>;
-    /**
-     * Constructs a `POST` request that interprets the body as a `Blob` and returns the full
-     * `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body as a `Blob`.
-     */
-    post(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Blob>>;
-    /**
-     * Constructs a `POST` request that interprets the body as a text stream and returns
-     * the full `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return  An `Observable` of the `HttpResponse` for the request,
-     * with a response body of type string.
-     */
-    post(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<string>>;
-    /**
-     * Constructs a `POST` request that interprets the body as JSON
-     * and returns the full `HttpResponse`.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the `HttpResponse` for the request, with a response body of type
-     * `Object`.
-     */
-    post(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Object>>;
-    /**
-     * Constructs a `POST` request that interprets the body as JSON and returns the
-     * full `HttpResponse`.
-     *
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the `HttpResponse` for the request, with a response body in the
-     * requested type.
-     */
-    post<T>(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<T>>;
-    /**
-     * Constructs a `POST` request that interprets the body as JSON
-     * and returns the response body as an object parsed from JSON.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the response, with the response body as an object parsed from JSON.
-     */
-    post(url: string, body: any | null, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<Object>;
-    /**
-     * Constructs a `POST` request that interprets the body as JSON
-     * and returns an observable of the response.
-     *
-     * @param url The endpoint URL.
-     * @param body The content to replace with.
-     * @param options HTTP options
-     *
-     * @return  An `Observable` of the `HttpResponse` for the request, with a response body in the
-     * requested type.
-     */
-    post<T>(url: string, body: any | null, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<T>;
-    /**
-     * Constructs a `PUT` request that interprets the body as an `ArrayBuffer` and returns the
-     * response as an `ArrayBuffer`.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the response, with the response body as an `ArrayBuffer`.
-     */
-    put(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<ArrayBuffer>;
-    /**
-     * Constructs a `PUT` request that interprets the body as a `Blob` and returns
-     * the response as a `Blob`.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the response, with the response body as a `Blob`.
-     */
-    put(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<Blob>;
-    /**
-     * Constructs a `PUT` request that interprets the body as a text string and
-     * returns the response as a string value.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the response, with a response body of type string.
-     */
-    put(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<string>;
-    /**
-     * Constructs a `PUT` request that interprets the body as an `ArrayBuffer` and
-     * returns the full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with the response body as an `ArrayBuffer`.
-     */
-    put(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<ArrayBuffer>>;
-    /**
-     * Constructs a `PUT` request that interprets the body as a `Blob` and returns the full event
-     * stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with the response body as a `Blob`.
-     */
-    put(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Blob>>;
-    /**
-     * Constructs a `PUT` request that interprets the body as a text string and returns the full event
-     * stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request, with a response body
-     * of type string.
-     */
-    put(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<string>>;
-    /**
-     * Constructs a `PUT` request that interprets the body as JSON and returns the full
-     * event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request, with a response body of
-     * type `Object`.
-     */
-    put(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<Object>>;
-    /**
-     * Constructs a `PUT` request that interprets the body as JSON and returns the
-     * full event stream.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of all `HttpEvent`s for the request,
-     * with a response body in the requested type.
-     */
-    put<T>(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'events';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpEvent<T>>;
-    /**
-     * Constructs a `PUT` request that interprets the body as an
-     * `ArrayBuffer` and returns an observable of the full HTTP response.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the `HttpResponse` for the request, with the response body as an
-     * `ArrayBuffer`.
-     */
-    put(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'arraybuffer';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<ArrayBuffer>>;
-    /**
-     * Constructs a `PUT` request that interprets the body as a `Blob` and returns the
-     * full HTTP response.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with the response body as a `Blob`.
-     */
-    put(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'blob';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Blob>>;
-    /**
-     * Constructs a `PUT` request that interprets the body as a text stream and returns the
-     * full HTTP response.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the `HttpResponse` for the request, with a response body of type
-     * string.
-     */
-    put(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType: 'text';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<string>>;
-    /**
-     * Constructs a `PUT` request that interprets the body as JSON and returns the full
-     * HTTP response.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the `HttpResponse` for the request, with a response body
-     * of type 'Object`.
-     */
-    put(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<Object>>;
-    /**
-     * Constructs a `PUT` request that interprets the body as an instance of the requested type and
-     * returns the full HTTP response.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the `HttpResponse` for the request,
-     * with a response body in the requested type.
-     */
-    put<T>(url: string, body: any | null, options: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        observe: 'response';
-        context?: HttpContext;
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<HttpResponse<T>>;
-    /**
-     * Constructs a `PUT` request that interprets the body as JSON
-     * and returns an observable of JavaScript object.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the response as a JavaScript object.
-     */
-    put(url: string, body: any | null, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<Object>;
-    /**
-     * Constructs a `PUT` request that interprets the body as an instance of the requested type
-     * and returns an observable of the requested type.
-     *
-     * @param url The endpoint URL.
-     * @param body The resources to add/update.
-     * @param options HTTP options
-     *
-     * @return An `Observable` of the requested type.
-     */
-    put<T>(url: string, body: any | null, options?: {
-        headers?: HttpHeaders | {
-            [header: string]: string | string[];
-        };
-        context?: HttpContext;
-        observe?: 'body';
-        params?: HttpParams | {
-            [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-        };
-        reportProgress?: boolean;
-        responseType?: 'json';
-        withCredentials?: boolean;
-    }): Observable<T>;
-    static ɵfac: i0.ɵɵFactoryDeclaration<HttpClient, never>;
-    static ɵprov: i0.ɵɵInjectableDeclaration<HttpClient>;
+export declare class ActivatedRouteSnapshot {
+    /** The URL segments matched by this route */
+    url: UrlSegment[];
+    /**
+     *  The matrix parameters scoped to this route.
+     *
+     *  You can compute all params (or data) in the router state or to get params outside
+     *  of an activated component by traversing the `RouterState` tree as in the following
+     *  example:
+     *  ```
+     *  collectRouteParams(router: Router) {
+     *    let params = {};
+     *    let stack: ActivatedRouteSnapshot[] = [router.routerState.snapshot.root];
+     *    while (stack.length > 0) {
+     *      const route = stack.pop()!;
+     *      params = {...params, ...route.params};
+     *      stack.push(...route.children);
+     *    }
+     *    return params;
+     *  }
+     *  ```
+     */
+    params: Params;
+    /** The query parameters shared by all the routes */
+    queryParams: Params;
+    /** The URL fragment shared by all the routes */
+    fragment: string | null;
+    /** The static and resolved data of this route */
+    data: Data;
+    /** The outlet name of the route */
+    outlet: string;
+    /** The component of the route */
+    component: Type<any> | null;
+    /** The configuration used to match this route **/
+    readonly routeConfig: Route | null;
+    /** The resolved route title */
+    readonly title?: string;
+    /** The root of the router state */
+    get root(): ActivatedRouteSnapshot;
+    /** The parent of this route in the router state tree */
+    get parent(): ActivatedRouteSnapshot | null;
+    /** The first child of this route in the router state tree */
+    get firstChild(): ActivatedRouteSnapshot | null;
+    /** The children of this route in the router state tree */
+    get children(): ActivatedRouteSnapshot[];
+    /** The path from the root of the router state tree to this route */
+    get pathFromRoot(): ActivatedRouteSnapshot[];
+    get paramMap(): ParamMap;
+    get queryParamMap(): ParamMap;
+    toString(): string;
 }
 
 /**
- * Configures the [dependency injector](guide/glossary#injector) for `HttpClient`
- * with supporting services for JSONP.
- * Without this module, Jsonp requests reach the backend
- * with method JSONP, where they are rejected.
- *
- * You can add interceptors to the chain behind `HttpClient` by binding them to the
- * multiprovider for built-in [DI token](guide/glossary#di-token) `HTTP_INTERCEPTORS`.
+ * An event triggered at the end of the activation part
+ * of the Resolve phase of routing.
+ * @see `ActivationStart`
+ * @see `ResolveStart`
  *
  * @publicApi
  */
-export declare class HttpClientJsonpModule {
-    static ɵfac: i0.ɵɵFactoryDeclaration<HttpClientJsonpModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDeclaration<HttpClientJsonpModule, never, never, never>;
-    static ɵinj: i0.ɵɵInjectorDeclaration<HttpClientJsonpModule>;
+export declare class ActivationEnd {
+    /** @docsNotRequired */
+    snapshot: ActivatedRouteSnapshot;
+    readonly type = EventType.ActivationEnd;
+    constructor(
+    /** @docsNotRequired */
+    snapshot: ActivatedRouteSnapshot);
+    toString(): string;
 }
 
 /**
- * Configures the [dependency injector](guide/glossary#injector) for `HttpClient`
- * with supporting services for XSRF. Automatically imported by `HttpClientModule`.
- *
- * You can add interceptors to the chain behind `HttpClient` by binding them to the
- * multiprovider for built-in [DI token](guide/glossary#di-token) `HTTP_INTERCEPTORS`.
+ * An event triggered at the start of the activation part
+ * of the Resolve phase of routing.
+ * @see `ActivationEnd`
+ * @see `ResolveStart`
  *
  * @publicApi
  */
-export declare class HttpClientModule {
-    static ɵfac: i0.ɵɵFactoryDeclaration<HttpClientModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDeclaration<HttpClientModule, never, [typeof HttpClientXsrfModule], never>;
-    static ɵinj: i0.ɵɵInjectorDeclaration<HttpClientModule>;
+export declare class ActivationStart {
+    /** @docsNotRequired */
+    snapshot: ActivatedRouteSnapshot;
+    readonly type = EventType.ActivationStart;
+    constructor(
+    /** @docsNotRequired */
+    snapshot: ActivatedRouteSnapshot);
+    toString(): string;
 }
 
 /**
- * Configures XSRF protection support for outgoing requests.
+ * @description
  *
- * For a server that supports a cookie-based XSRF protection system,
- * use directly to configure XSRF protection with the correct
- * cookie and header names.
+ * This base route reuse strategy only reuses routes when the matched router configs are
+ * identical. This prevents components from being destroyed and recreated
+ * when just the fragment or query parameters change
+ * (that is, the existing component is _reused_).
  *
- * If no names are supplied, the default cookie name is `XSRF-TOKEN`
- * and the default header name is `X-XSRF-TOKEN`.
+ * This strategy does not store any routes for later reuse.
  *
+ * Angular uses this strategy by default.
+ *
+ *
+ * It can be used as a base class for custom route reuse strategies, i.e. you can create your own
+ * class that extends the `BaseRouteReuseStrategy` one.
  * @publicApi
  */
-export declare class HttpClientXsrfModule {
+export declare abstract class BaseRouteReuseStrategy implements RouteReuseStrategy {
     /**
-     * Disable the default XSRF protection.
-     */
-    static disable(): ModuleWithProviders<HttpClientXsrfModule>;
+     * Whether the given route should detach for later reuse.
+     * Always returns false for `BaseRouteReuseStrategy`.
+     * */
+    shouldDetach(route: ActivatedRouteSnapshot): boolean;
     /**
-     * Configure XSRF protection.
-     * @param options An object that can specify either or both
-     * cookie name or header name.
-     * - Cookie name default is `XSRF-TOKEN`.
-     * - Header name default is `X-XSRF-TOKEN`.
-     *
+     * A no-op; the route is never stored since this strategy never detaches routes for later re-use.
      */
-    static withOptions(options?: {
-        cookieName?: string;
-        headerName?: string;
-    }): ModuleWithProviders<HttpClientXsrfModule>;
-    static ɵfac: i0.ɵɵFactoryDeclaration<HttpClientXsrfModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDeclaration<HttpClientXsrfModule, never, never, never>;
-    static ɵinj: i0.ɵɵInjectorDeclaration<HttpClientXsrfModule>;
+    store(route: ActivatedRouteSnapshot, detachedTree: DetachedRouteHandle): void;
+    /** Returns `false`, meaning the route (and its subtree) is never reattached */
+    shouldAttach(route: ActivatedRouteSnapshot): boolean;
+    /** Returns `null` because this strategy does not store routes for later re-use. */
+    retrieve(route: ActivatedRouteSnapshot): DetachedRouteHandle | null;
+    /**
+     * Determines if a route should be reused.
+     * This strategy returns `true` when the future route config and current route config are
+     * identical.
+     */
+    shouldReuseRoute(future: ActivatedRouteSnapshot, curr: ActivatedRouteSnapshot): boolean;
 }
 
 /**
- * Http context stores arbitrary user defined values and ensures type safety without
- * actually knowing the types. It is backed by a `Map` and guarantees that keys do not clash.
+ * @description
  *
- * This context is mutable and is shared between cloned requests unless explicitly specified.
+ * Interface that a class can implement to be a guard deciding if a route can be activated.
+ * If all guards return `true`, navigation continues. If any guard returns `false`,
+ * navigation is cancelled. If any guard returns a `UrlTree`, the current navigation
+ * is cancelled and a new navigation begins to the `UrlTree` returned from the guard.
  *
- * @usageNotes
+ * The following example implements a `CanActivate` function that checks whether the
+ * current user has permission to activate the requested route.
  *
- * ### Usage Example
- *
- * ```typescript
- * // inside cache.interceptors.ts
- * export const IS_CACHE_ENABLED = new HttpContextToken<boolean>(() => false);
- *
- * export class CacheInterceptor implements HttpInterceptor {
- *
- *   intercept(req: HttpRequest<any>, delegate: HttpHandler): Observable<HttpEvent<any>> {
- *     if (req.context.get(IS_CACHE_ENABLED) === true) {
- *       return ...;
- *     }
- *     return delegate.handle(req);
+ * ```
+ * class UserToken {}
+ * class Permissions {
+ *   canActivate(): boolean {
+ *     return true;
  *   }
  * }
  *
- * // inside a service
+ * @Injectable()
+ * class CanActivateTeam implements CanActivate {
+ *   constructor(private permissions: Permissions, private currentUser: UserToken) {}
  *
- * this.httpClient.get('/api/weather', {
- *   context: new HttpContext().set(IS_CACHE_ENABLED, true)
- * }).subscribe(...);
+ *   canActivate(
+ *     route: ActivatedRouteSnapshot,
+ *     state: RouterStateSnapshot
+ *   ): Observable<boolean|UrlTree>|Promise<boolean|UrlTree>|boolean|UrlTree {
+ *     return this.permissions.canActivate(this.currentUser, route.params.id);
+ *   }
+ * }
+ * ```
+ *
+ * Here, the defined guard function is provided as part of the `Route` object
+ * in the router configuration:
+ *
+ * ```
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'team/:id',
+ *         component: TeamComponent,
+ *         canActivate: [CanActivateTeam]
+ *       }
+ *     ])
+ *   ],
+ *   providers: [CanActivateTeam, UserToken, Permissions]
+ * })
+ * class AppModule {}
+ * ```
+ *
+ * You can alternatively provide an in-line function with the `CanActivateFn` signature:
+ *
+ * ```
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'team/:id',
+ *         component: TeamComponent,
+ *         canActivate: [(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => true]
+ *       }
+ *     ])
+ *   ],
+ * })
+ * class AppModule {}
  * ```
  *
  * @publicApi
  */
-export declare class HttpContext {
-    private readonly map;
-    /**
-     * Store a value in the context. If a value is already present it will be overwritten.
-     *
-     * @param token The reference to an instance of `HttpContextToken`.
-     * @param value The value to store.
-     *
-     * @returns A reference to itself for easy chaining.
-     */
-    set<T>(token: HttpContextToken<T>, value: T): HttpContext;
-    /**
-     * Retrieve the value associated with the given token.
-     *
-     * @param token The reference to an instance of `HttpContextToken`.
-     *
-     * @returns The stored value or default if one is defined.
-     */
-    get<T>(token: HttpContextToken<T>): T;
-    /**
-     * Delete the value associated with the given token.
-     *
-     * @param token The reference to an instance of `HttpContextToken`.
-     *
-     * @returns A reference to itself for easy chaining.
-     */
-    delete(token: HttpContextToken<unknown>): HttpContext;
-    /**
-     * Checks for existence of a given token.
-     *
-     * @param token The reference to an instance of `HttpContextToken`.
-     *
-     * @returns True if the token exists, false otherwise.
-     */
-    has(token: HttpContextToken<unknown>): boolean;
-    /**
-     * @returns a list of tokens currently stored in the context.
-     */
-    keys(): IterableIterator<HttpContextToken<unknown>>;
-}
-
-
-/**
- * A token used to manipulate and access values stored in `HttpContext`.
- *
- * @publicApi
- */
-export declare class HttpContextToken<T> {
-    readonly defaultValue: () => T;
-    constructor(defaultValue: () => T);
+export declare interface CanActivate {
+    canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
 }
 
 /**
- * A download progress event.
+ * @description
+ *
+ * Interface that a class can implement to be a guard deciding if a child route can be activated.
+ * If all guards return `true`, navigation continues. If any guard returns `false`,
+ * navigation is cancelled. If any guard returns a `UrlTree`, current navigation
+ * is cancelled and a new navigation begins to the `UrlTree` returned from the guard.
+ *
+ * The following example implements a `CanActivateChild` function that checks whether the
+ * current user has permission to activate the requested child route.
+ *
+ * ```
+ * class UserToken {}
+ * class Permissions {
+ *   canActivate(user: UserToken, id: string): boolean {
+ *     return true;
+ *   }
+ * }
+ *
+ * @Injectable()
+ * class CanActivateTeam implements CanActivateChild {
+ *   constructor(private permissions: Permissions, private currentUser: UserToken) {}
+ *
+ *   canActivateChild(
+ *     route: ActivatedRouteSnapshot,
+ *     state: RouterStateSnapshot
+ *   ): Observable<boolean|UrlTree>|Promise<boolean|UrlTree>|boolean|UrlTree {
+ *     return this.permissions.canActivate(this.currentUser, route.params.id);
+ *   }
+ * }
+ * ```
+ *
+ * Here, the defined guard function is provided as part of the `Route` object
+ * in the router configuration:
+ *
+ * ```
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'root',
+ *         canActivateChild: [CanActivateTeam],
+ *         children: [
+ *           {
+ *              path: 'team/:id',
+ *              component: TeamComponent
+ *           }
+ *         ]
+ *       }
+ *     ])
+ *   ],
+ *   providers: [CanActivateTeam, UserToken, Permissions]
+ * })
+ * class AppModule {}
+ * ```
+ *
+ * You can alternatively provide an in-line function with the `CanActivateChildFn` signature:
+ *
+ * ```
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'root',
+ *         canActivateChild: [(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => true],
+ *         children: [
+ *           {
+ *             path: 'team/:id',
+ *             component: TeamComponent
+ *           }
+ *         ]
+ *       }
+ *     ])
+ *   ],
+ * })
+ * class AppModule {}
+ * ```
  *
  * @publicApi
  */
-export declare interface HttpDownloadProgressEvent extends HttpProgressEvent {
-    type: HttpEventType.DownloadProgress;
-    /**
-     * The partial response body as downloaded so far.
-     *
-     * Only present if the responseType was `text`.
-     */
-    partialText?: string;
+export declare interface CanActivateChild {
+    canActivateChild(childRoute: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
 }
 
 /**
- * A response that represents an error or failure, either from a
- * non-successful HTTP status, an error while executing the request,
- * or some other failure which occurred during the parsing of the response.
+ * The signature of a function used as a `canActivateChild` guard on a `Route`.
  *
- * Any error returned on the `Observable` response stream will be
- * wrapped in an `HttpErrorResponse` to provide additional context about
- * the state of the HTTP layer when the error occurred. The error property
- * will contain either a wrapped Error object or the error response returned
- * from the server.
+ * @publicApi
+ * @see `CanActivateChild`
+ * @see `Route`
+ */
+export declare type CanActivateChildFn = (childRoute: ActivatedRouteSnapshot, state: RouterStateSnapshot) => Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
+
+/**
+ * The signature of a function used as a `canActivate` guard on a `Route`.
+ *
+ * @publicApi
+ * @see `CanActivate`
+ * @see `Route`
+ */
+export declare type CanActivateFn = (route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
+
+/**
+ * @description
+ *
+ * Interface that a class can implement to be a guard deciding if a route can be deactivated.
+ * If all guards return `true`, navigation continues. If any guard returns `false`,
+ * navigation is cancelled. If any guard returns a `UrlTree`, current navigation
+ * is cancelled and a new navigation begins to the `UrlTree` returned from the guard.
+ *
+ * The following example implements a `CanDeactivate` function that checks whether the
+ * current user has permission to deactivate the requested route.
+ *
+ * ```
+ * class UserToken {}
+ * class Permissions {
+ *   canDeactivate(user: UserToken, id: string): boolean {
+ *     return true;
+ *   }
+ * }
+ * ```
+ *
+ * Here, the defined guard function is provided as part of the `Route` object
+ * in the router configuration:
+ *
+ * ```
+ *
+ * @Injectable()
+ * class CanDeactivateTeam implements CanDeactivate<TeamComponent> {
+ *   constructor(private permissions: Permissions, private currentUser: UserToken) {}
+ *
+ *   canDeactivate(
+ *     component: TeamComponent,
+ *     currentRoute: ActivatedRouteSnapshot,
+ *     currentState: RouterStateSnapshot,
+ *     nextState: RouterStateSnapshot
+ *   ): Observable<boolean|UrlTree>|Promise<boolean|UrlTree>|boolean|UrlTree {
+ *     return this.permissions.canDeactivate(this.currentUser, route.params.id);
+ *   }
+ * }
+ *
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'team/:id',
+ *         component: TeamComponent,
+ *         canDeactivate: [CanDeactivateTeam]
+ *       }
+ *     ])
+ *   ],
+ *   providers: [CanDeactivateTeam, UserToken, Permissions]
+ * })
+ * class AppModule {}
+ * ```
+ *
+ * You can alternatively provide an in-line function with the `CanDeactivateFn` signature:
+ *
+ * ```
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'team/:id',
+ *         component: TeamComponent,
+ *         canDeactivate: [(component: TeamComponent, currentRoute: ActivatedRouteSnapshot,
+ * currentState: RouterStateSnapshot, nextState: RouterStateSnapshot) => true]
+ *       }
+ *     ])
+ *   ],
+ * })
+ * class AppModule {}
+ * ```
  *
  * @publicApi
  */
-export declare class HttpErrorResponse extends HttpResponseBase implements Error {
-    readonly name = "HttpErrorResponse";
-    readonly message: string;
-    readonly error: any | null;
-    /**
-     * Errors are never okay, even when the status code is in the 2xx success range.
-     */
-    readonly ok = false;
-    constructor(init: {
-        error?: any;
-        headers?: HttpHeaders;
-        status?: number;
-        statusText?: string;
-        url?: string;
-    });
+export declare interface CanDeactivate<T> {
+    canDeactivate(component: T, currentRoute: ActivatedRouteSnapshot, currentState: RouterStateSnapshot, nextState?: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
 }
 
 /**
- * Union type for all possible events on the response stream.
- *
- * Typed according to the expected type of the response.
+ * The signature of a function used as a `canDeactivate` guard on a `Route`.
  *
  * @publicApi
+ * @see `CanDeactivate`
+ * @see `Route`
  */
-export declare type HttpEvent<T> = HttpSentEvent | HttpHeaderResponse | HttpResponse<T> | HttpProgressEvent | HttpUserEvent<T>;
+export declare type CanDeactivateFn<T> = (component: T, currentRoute: ActivatedRouteSnapshot, currentState: RouterStateSnapshot, nextState?: RouterStateSnapshot) => Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
 
 /**
- * Type enumeration for the different kinds of `HttpEvent`.
+ * @description
+ *
+ * Interface that a class can implement to be a guard deciding if children can be loaded.
+ * If all guards return `true`, navigation continues. If any guard returns `false`,
+ * navigation is cancelled. If any guard returns a `UrlTree`, current navigation
+ * is cancelled and a new navigation starts to the `UrlTree` returned from the guard.
+ *
+ * The following example implements a `CanLoad` function that decides whether the
+ * current user has permission to load requested child routes.
+ *
+ *
+ * ```
+ * class UserToken {}
+ * class Permissions {
+ *   canLoadChildren(user: UserToken, id: string, segments: UrlSegment[]): boolean {
+ *     return true;
+ *   }
+ * }
+ *
+ * @Injectable()
+ * class CanLoadTeamSection implements CanLoad {
+ *   constructor(private permissions: Permissions, private currentUser: UserToken) {}
+ *
+ *   canLoad(route: Route, segments: UrlSegment[]): Observable<boolean>|Promise<boolean>|boolean {
+ *     return this.permissions.canLoadChildren(this.currentUser, route, segments);
+ *   }
+ * }
+ * ```
+ *
+ * Here, the defined guard function is provided as part of the `Route` object
+ * in the router configuration:
+ *
+ * ```
+ *
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'team/:id',
+ *         component: TeamComponent,
+ *         loadChildren: () => import('./team').then(mod => mod.TeamModule),
+ *         canLoad: [CanLoadTeamSection]
+ *       }
+ *     ])
+ *   ],
+ *   providers: [CanLoadTeamSection, UserToken, Permissions]
+ * })
+ * class AppModule {}
+ * ```
+ *
+ * You can alternatively provide an in-line function with the `CanLoadFn` signature:
+ *
+ * ```
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'team/:id',
+ *         component: TeamComponent,
+ *         loadChildren: () => import('./team').then(mod => mod.TeamModule),
+ *         canLoad: [(route: Route, segments: UrlSegment[]) => true]
+ *       }
+ *     ])
+ *   ],
+ * })
+ * class AppModule {}
+ * ```
  *
  * @publicApi
  */
-export declare enum HttpEventType {
-    /**
-     * The request was sent out over the wire.
-     */
-    Sent = 0,
-    /**
-     * An upload progress event was received.
-     */
-    UploadProgress = 1,
-    /**
-     * The response status code and headers were received.
-     */
-    ResponseHeader = 2,
-    /**
-     * A download progress event was received.
-     */
-    DownloadProgress = 3,
-    /**
-     * The full response including the body was received.
-     */
-    Response = 4,
-    /**
-     * A custom event from an interceptor or a backend.
-     */
-    User = 5
+export declare interface CanLoad {
+    canLoad(route: Route, segments: UrlSegment[]): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
 }
 
 /**
- * Transforms an `HttpRequest` into a stream of `HttpEvent`s, one of which will likely be a
- * `HttpResponse`.
+ * The signature of a function used as a `canLoad` guard on a `Route`.
  *
- * `HttpHandler` is injectable. When injected, the handler instance dispatches requests to the
- * first interceptor in the chain, which dispatches to the second, etc, eventually reaching the
- * `HttpBackend`.
+ * @publicApi
+ * @see `CanLoad`
+ * @see `Route`
+ */
+export declare type CanLoadFn = (route: Route, segments: UrlSegment[]) => Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
+
+/**
+ * @description
  *
- * In an `HttpInterceptor`, the `HttpHandler` parameter is the next interceptor in the chain.
+ * Interface that a class can implement to be a guard deciding if a `Route` can be matched.
+ * If all guards return `true`, navigation continues and the `Router` will use the `Route` during
+ * activation. If any guard returns `false`, the `Route` is skipped for matching and other `Route`
+ * configurations are processed instead.
+ *
+ * The following example implements a `CanMatch` function that decides whether the
+ * current user has permission to access the users page.
+ *
+ *
+ * ```
+ * class UserToken {}
+ * class Permissions {
+ *   canAccess(user: UserToken, id: string, segments: UrlSegment[]): boolean {
+ *     return true;
+ *   }
+ * }
+ *
+ * @Injectable()
+ * class CanMatchTeamSection implements CanMatch {
+ *   constructor(private permissions: Permissions, private currentUser: UserToken) {}
+ *
+ *   canMatch(route: Route, segments: UrlSegment[]): Observable<boolean>|Promise<boolean>|boolean {
+ *     return this.permissions.canAccess(this.currentUser, route, segments);
+ *   }
+ * }
+ * ```
+ *
+ * Here, the defined guard function is provided as part of the `Route` object
+ * in the router configuration:
+ *
+ * ```
+ *
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'team/:id',
+ *         component: TeamComponent,
+ *         loadChildren: () => import('./team').then(mod => mod.TeamModule),
+ *         canMatch: [CanMatchTeamSection]
+ *       },
+ *       {
+ *         path: '**',
+ *         component: NotFoundComponent
+ *       }
+ *     ])
+ *   ],
+ *   providers: [CanMatchTeamSection, UserToken, Permissions]
+ * })
+ * class AppModule {}
+ * ```
+ *
+ * If the `CanMatchTeamSection` were to return `false`, the router would continue navigating to the
+ * `team/:id` URL, but would load the `NotFoundComponent` because the `Route` for `'team/:id'`
+ * could not be used for a URL match but the catch-all `**` `Route` did instead.
+ *
+ * You can alternatively provide an in-line function with the `CanMatchFn` signature:
+ *
+ * ```
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'team/:id',
+ *         component: TeamComponent,
+ *         loadChildren: () => import('./team').then(mod => mod.TeamModule),
+ *         canMatch: [(route: Route, segments: UrlSegment[]) => true]
+ *       },
+ *       {
+ *         path: '**',
+ *         component: NotFoundComponent
+ *       }
+ *     ])
+ *   ],
+ * })
+ * class AppModule {}
+ * ```
  *
  * @publicApi
  */
-export declare abstract class HttpHandler {
-    abstract handle(req: HttpRequest<any>): Observable<HttpEvent<any>>;
+export declare interface CanMatch {
+    canMatch(route: Route, segments: UrlSegment[]): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
 }
 
 /**
- * A partial HTTP response which only includes the status and header data,
- * but no response body.
+ * The signature of a function used as a `CanMatch` guard on a `Route`.
  *
- * `HttpHeaderResponse` is a `HttpEvent` available on the response
- * event stream, only when progress events are requested.
+ * @publicApi
+ * @see `CanMatch`
+ * @see `Route`
+ */
+export declare type CanMatchFn = (route: Route, segments: UrlSegment[]) => Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
+
+/**
+ * An event triggered at the end of the child-activation part
+ * of the Resolve phase of routing.
+ * @see `ChildActivationStart`
+ * @see `ResolveStart`
+ * @publicApi
+ */
+export declare class ChildActivationEnd {
+    /** @docsNotRequired */
+    snapshot: ActivatedRouteSnapshot;
+    readonly type = EventType.ChildActivationEnd;
+    constructor(
+    /** @docsNotRequired */
+    snapshot: ActivatedRouteSnapshot);
+    toString(): string;
+}
+
+/**
+ * An event triggered at the start of the child-activation
+ * part of the Resolve phase of routing.
+ * @see  `ChildActivationEnd`
+ * @see `ResolveStart`
  *
  * @publicApi
  */
-export declare class HttpHeaderResponse extends HttpResponseBase {
-    /**
-     * Create a new `HttpHeaderResponse` with the given parameters.
-     */
-    constructor(init?: {
-        headers?: HttpHeaders;
-        status?: number;
-        statusText?: string;
-        url?: string;
-    });
-    readonly type: HttpEventType.ResponseHeader;
-    /**
-     * Copy this `HttpHeaderResponse`, overriding its contents with the
-     * given parameter hash.
-     */
-    clone(update?: {
-        headers?: HttpHeaders;
-        status?: number;
-        statusText?: string;
-        url?: string;
-    }): HttpHeaderResponse;
+export declare class ChildActivationStart {
+    /** @docsNotRequired */
+    snapshot: ActivatedRouteSnapshot;
+    readonly type = EventType.ChildActivationStart;
+    constructor(
+    /** @docsNotRequired */
+    snapshot: ActivatedRouteSnapshot);
+    toString(): string;
 }
 
-
 /**
- * Represents the header configuration options for an HTTP request.
- * Instances are immutable. Modifying methods return a cloned
- * instance with the change. The original object is never changed.
+ * Store contextual information about the children (= nested) `RouterOutlet`
  *
  * @publicApi
  */
-export declare class HttpHeaders {
+export declare class ChildrenOutletContexts {
+    private contexts;
+    /** Called when a `RouterOutlet` directive is instantiated */
+    onChildOutletCreated(childName: string, outlet: RouterOutletContract): void;
     /**
-     * Internal map of lowercase header names to values.
+     * Called when a `RouterOutlet` directive is destroyed.
+     * We need to keep the context as the outlet could be destroyed inside a NgIf and might be
+     * re-created later.
      */
-    private headers;
+    onChildOutletDestroyed(childName: string): void;
     /**
-     * Internal map of lowercased header names to the normalized
-     * form of the name (the form seen first).
+     * Called when the corresponding route is deactivated during navigation.
+     * Because the component get destroyed, all children outlet are destroyed.
      */
-    private normalizedNames;
-    /**
-     * Complete the lazy initialization of this object (needed before reading).
-     */
-    private lazyInit;
-    /**
-     * Queued updates to be materialized the next initialization.
-     */
-    private lazyUpdate;
-    /**  Constructs a new HTTP header object with the given values.*/
-    constructor(headers?: string | {
-        [name: string]: string | string[];
-    });
-    /**
-     * Checks for existence of a given header.
-     *
-     * @param name The header name to check for existence.
-     *
-     * @returns True if the header exists, false otherwise.
-     */
-    has(name: string): boolean;
-    /**
-     * Retrieves the first value of a given header.
-     *
-     * @param name The header name.
-     *
-     * @returns The value string if the header exists, null otherwise
-     */
-    get(name: string): string | null;
-    /**
-     * Retrieves the names of the headers.
-     *
-     * @returns A list of header names.
-     */
-    keys(): string[];
-    /**
-     * Retrieves a list of values for a given header.
-     *
-     * @param name The header name from which to retrieve values.
-     *
-     * @returns A string of values if the header exists, null otherwise.
-     */
-    getAll(name: string): string[] | null;
-    /**
-     * Appends a new value to the existing set of values for a header
-     * and returns them in a clone of the original instance.
-     *
-     * @param name The header name for which to append the values.
-     * @param value The value to append.
-     *
-     * @returns A clone of the HTTP headers object with the value appended to the given header.
-     */
-    append(name: string, value: string | string[]): HttpHeaders;
-    /**
-     * Sets or modifies a value for a given header in a clone of the original instance.
-     * If the header already exists, its value is replaced with the given value
-     * in the returned object.
-     *
-     * @param name The header name.
-     * @param value The value or values to set or override for the given header.
-     *
-     * @returns A clone of the HTTP headers object with the newly set header value.
-     */
-    set(name: string, value: string | string[]): HttpHeaders;
-    /**
-     * Deletes values for a given header in a clone of the original instance.
-     *
-     * @param name The header name.
-     * @param value The value or values to delete for the given header.
-     *
-     * @returns A clone of the HTTP headers object with the given value deleted.
-     */
-    delete(name: string, value?: string | string[]): HttpHeaders;
-    private maybeSetNormalizedName;
-    private init;
-    private copyFrom;
-    private clone;
-    private applyUpdate;
+    onOutletDeactivated(): Map<string, OutletContext>;
+    onOutletReAttached(contexts: Map<string, OutletContext>): void;
+    getOrCreateContext(childName: string): OutletContext;
+    getContext(childName: string): OutletContext | null;
+    static ɵfac: i0.ɵɵFactoryDeclaration<ChildrenOutletContexts, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<ChildrenOutletContexts>;
 }
 
 /**
- * Intercepts and handles an `HttpRequest` or `HttpResponse`.
+ * Converts a `Params` instance to a `ParamMap`.
+ * @param params The instance to convert.
+ * @returns The new map instance.
  *
- * Most interceptors transform the outgoing request before passing it to the
- * next interceptor in the chain, by calling `next.handle(transformedReq)`.
- * An interceptor may transform the
- * response event stream as well, by applying additional RxJS operators on the stream
- * returned by `next.handle()`.
- *
- * More rarely, an interceptor may handle the request entirely,
- * and compose a new event stream instead of invoking `next.handle()`. This is an
- * acceptable behavior, but keep in mind that further interceptors will be skipped entirely.
- *
- * It is also rare but valid for an interceptor to return multiple responses on the
- * event stream for a single request.
+ * @publicApi
+ */
+export declare function convertToParamMap(params: Params): ParamMap;
+
+/**
+ * Creates a `UrlTree` relative to an `ActivatedRouteSnapshot`.
  *
  * @publicApi
  *
- * @see [HTTP Guide](guide/http#intercepting-requests-and-responses)
+ *
+ * @param relativeTo The `ActivatedRouteSnapshot` to apply the commands to
+ * @param commands An array of URL fragments with which to construct the new URL tree.
+ * If the path is static, can be the literal URL string. For a dynamic path, pass an array of path
+ * segments, followed by the parameters for each segment.
+ * The fragments are applied to the one provided in the `relativeTo` parameter.
+ * @param queryParams The query parameters for the `UrlTree`. `null` if the `UrlTree` does not have
+ *     any query parameters.
+ * @param fragment The fragment for the `UrlTree`. `null` if the `UrlTree` does not have a fragment.
  *
  * @usageNotes
  *
- * To use the same instance of `HttpInterceptors` for the entire app, import the `HttpClientModule`
- * only in your `AppModule`, and add the interceptors to the root application injector.
- * If you import `HttpClientModule` multiple times across different modules (for example, in lazy
- * loading modules), each import creates a new copy of the `HttpClientModule`, which overwrites the
- * interceptors provided in the root module.
+ * ```
+ * // create /team/33/user/11
+ * createUrlTreeFromSnapshot(snapshot, ['/team', 33, 'user', 11]);
  *
+ * // create /team/33;expand=true/user/11
+ * createUrlTreeFromSnapshot(snapshot, ['/team', 33, {expand: true}, 'user', 11]);
+ *
+ * // you can collapse static segments like this (this works only with the first passed-in value):
+ * createUrlTreeFromSnapshot(snapshot, ['/team/33/user', userId]);
+ *
+ * // If the first segment can contain slashes, and you do not want the router to split it,
+ * // you can do the following:
+ * createUrlTreeFromSnapshot(snapshot, [{segmentPath: '/one/two'}]);
+ *
+ * // create /team/33/(user/11//right:chat)
+ * createUrlTreeFromSnapshot(snapshot, ['/team', 33, {outlets: {primary: 'user/11', right:
+ * 'chat'}}], null, null);
+ *
+ * // remove the right secondary node
+ * createUrlTreeFromSnapshot(snapshot, ['/team', 33, {outlets: {primary: 'user/11', right: null}}]);
+ *
+ * // For the examples below, assume the current URL is for the `/team/33/user/11` and the
+ * `ActivatedRouteSnapshot` points to `user/11`:
+ *
+ * // navigate to /team/33/user/11/details
+ * createUrlTreeFromSnapshot(snapshot, ['details']);
+ *
+ * // navigate to /team/33/user/22
+ * createUrlTreeFromSnapshot(snapshot, ['../22']);
+ *
+ * // navigate to /team/44/user/22
+ * createUrlTreeFromSnapshot(snapshot, ['../../team/44/user/22']);
+ * ```
  */
-export declare interface HttpInterceptor {
-    /**
-     * Identifies and handles a given HTTP request.
-     * @param req The outgoing request object to handle.
-     * @param next The next interceptor in the chain, or the backend
-     * if no interceptors remain in the chain.
-     * @returns An observable of the event stream.
-     */
-    intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>>;
-}
-
+export declare function createUrlTreeFromSnapshot(relativeTo: ActivatedRouteSnapshot, commands: any[], queryParams?: Params | null, fragment?: string | null): UrlTree;
 
 /**
- * A codec for encoding and decoding parameters in URLs.
  *
- * Used by `HttpParams`.
+ * Represents static data associated with a particular route.
  *
- * @publicApi
- **/
-export declare interface HttpParameterCodec {
-    encodeKey(key: string): string;
-    encodeValue(value: string): string;
-    decodeKey(key: string): string;
-    decodeValue(value: string): string;
-}
-
-/**
- * An HTTP request/response body that represents serialized parameters,
- * per the MIME type `application/x-www-form-urlencoded`.
- *
- * This class is immutable; all mutation operations return a new instance.
+ * @see `Route#data`
  *
  * @publicApi
  */
-export declare class HttpParams {
-    private map;
-    private encoder;
-    private updates;
-    private cloneFrom;
-    constructor(options?: HttpParamsOptions);
+export declare type Data = {
+    [key: string | symbol]: any;
+};
+
+/**
+ * A type alias for providers returned by `withDebugTracing` for use with `provideRouter`.
+ *
+ * @see `withDebugTracing`
+ * @see `provideRouter`
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare type DebugTracingFeature = RouterFeature<RouterFeatureKind.DebugTracingFeature>;
+
+/**
+ * The default `TitleStrategy` used by the router that updates the title using the `Title` service.
+ */
+export declare class DefaultTitleStrategy extends TitleStrategy {
+    readonly title: Title;
+    constructor(title: Title);
     /**
-     * Reports whether the body includes one or more values for a given parameter.
-     * @param param The parameter name.
-     * @returns True if the parameter has one or more values,
-     * false if it has no value or is not present.
+     * Sets the title of the browser to the given value.
+     *
+     * @param title The `pageTitle` from the deepest primary route.
      */
-    has(param: string): boolean;
+    updateTitle(snapshot: RouterStateSnapshot): void;
+    static ɵfac: i0.ɵɵFactoryDeclaration<DefaultTitleStrategy, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<DefaultTitleStrategy>;
+}
+
+/**
+ * Matches the route configuration (`route`) against the actual URL (`segments`).
+ *
+ * When no matcher is defined on a `Route`, this is the matcher used by the Router by default.
+ *
+ * @param segments The remaining unmatched segments in the current navigation
+ * @param segmentGroup The current segment group being matched
+ * @param route The `Route` to match against.
+ *
+ * @see UrlMatchResult
+ * @see Route
+ *
+ * @returns The resulting match information or `null` if the `route` should not match.
+ * @publicApi
+ */
+export declare function defaultUrlMatcher(segments: UrlSegment[], segmentGroup: UrlSegmentGroup, route: Route): UrlMatchResult | null;
+
+/**
+ * @description
+ *
+ * A default implementation of the `UrlSerializer`.
+ *
+ * Example URLs:
+ *
+ * ```
+ * /inbox/33(popup:compose)
+ * /inbox/33;open=true/messages/44
+ * ```
+ *
+ * DefaultUrlSerializer uses parentheses to serialize secondary segments (e.g., popup:compose), the
+ * colon syntax to specify the outlet, and the ';parameter=value' syntax (e.g., open=true) to
+ * specify route specific parameters.
+ *
+ * @publicApi
+ */
+export declare class DefaultUrlSerializer implements UrlSerializer {
+    /** Parses a url into a `UrlTree` */
+    parse(url: string): UrlTree;
+    /** Converts a `UrlTree` into a url */
+    serialize(tree: UrlTree): string;
+}
+
+/**
+ * @description
+ *
+ * Represents the detached route tree.
+ *
+ * This is an opaque value the router will give to a custom route reuse strategy
+ * to store and retrieve later on.
+ *
+ * @publicApi
+ */
+export declare type DetachedRouteHandle = {};
+
+/**
+ * A type alias for providers returned by `withDisabledInitialNavigation` for use with
+ * `provideRouter`.
+ *
+ * @see `withDisabledInitialNavigation`
+ * @see `provideRouter`
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare type DisabledInitialNavigationFeature = RouterFeature<RouterFeatureKind.DisabledInitialNavigationFeature>;
+
+/**
+ * A type alias for providers returned by `withEnabledBlockingInitialNavigation` for use with
+ * `provideRouter`.
+ *
+ * @see `withEnabledBlockingInitialNavigation`
+ * @see `provideRouter`
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare type EnabledBlockingInitialNavigationFeature = RouterFeature<RouterFeatureKind.EnabledBlockingInitialNavigationFeature>;
+
+/**
+ * Error handler that is invoked when a navigation error occurs.
+ *
+ * If the handler returns a value, the navigation Promise is resolved with this value.
+ * If the handler throws an exception, the navigation Promise is rejected with
+ * the exception.
+ *
+ * @publicApi
+ */
+declare type ErrorHandler = (error: any) => any;
+
+/**
+ * Router events that allow you to track the lifecycle of the router.
+ *
+ * The events occur in the following sequence:
+ *
+ * * [NavigationStart](api/router/NavigationStart): Navigation starts.
+ * * [RouteConfigLoadStart](api/router/RouteConfigLoadStart): Before
+ * the router [lazy loads](/guide/router#lazy-loading) a route configuration.
+ * * [RouteConfigLoadEnd](api/router/RouteConfigLoadEnd): After a route has been lazy loaded.
+ * * [RoutesRecognized](api/router/RoutesRecognized): When the router parses the URL
+ * and the routes are recognized.
+ * * [GuardsCheckStart](api/router/GuardsCheckStart): When the router begins the *guards*
+ * phase of routing.
+ * * [ChildActivationStart](api/router/ChildActivationStart): When the router
+ * begins activating a route's children.
+ * * [ActivationStart](api/router/ActivationStart): When the router begins activating a route.
+ * * [GuardsCheckEnd](api/router/GuardsCheckEnd): When the router finishes the *guards*
+ * phase of routing successfully.
+ * * [ResolveStart](api/router/ResolveStart): When the router begins the *resolve*
+ * phase of routing.
+ * * [ResolveEnd](api/router/ResolveEnd): When the router finishes the *resolve*
+ * phase of routing successfully.
+ * * [ChildActivationEnd](api/router/ChildActivationEnd): When the router finishes
+ * activating a route's children.
+ * * [ActivationEnd](api/router/ActivationEnd): When the router finishes activating a route.
+ * * [NavigationEnd](api/router/NavigationEnd): When navigation ends successfully.
+ * * [NavigationCancel](api/router/NavigationCancel): When navigation is canceled.
+ * * [NavigationError](api/router/NavigationError): When navigation fails
+ * due to an unexpected error.
+ * * [Scroll](api/router/Scroll): When the user scrolls.
+ *
+ * @publicApi
+ */
+declare type Event_2 = RouterEvent | NavigationStart | NavigationEnd | NavigationCancel | NavigationError | RoutesRecognized | GuardsCheckStart | GuardsCheckEnd | RouteConfigLoadStart | RouteConfigLoadEnd | ChildActivationStart | ChildActivationEnd | ActivationStart | ActivationEnd | Scroll | ResolveStart | ResolveEnd;
+export { Event_2 as Event }
+
+/**
+ * Identifies the type of a router event.
+ *
+ * @publicApi
+ */
+export declare const enum EventType {
+    NavigationStart = 0,
+    NavigationEnd = 1,
+    NavigationCancel = 2,
+    NavigationError = 3,
+    RoutesRecognized = 4,
+    ResolveStart = 5,
+    ResolveEnd = 6,
+    GuardsCheckStart = 7,
+    GuardsCheckEnd = 8,
+    RouteConfigLoadStart = 9,
+    RouteConfigLoadEnd = 10,
+    ChildActivationStart = 11,
+    ChildActivationEnd = 12,
+    ActivationStart = 13,
+    ActivationEnd = 14,
+    Scroll = 15
+}
+
+/**
+ * A set of configuration options for a router module, provided in the
+ * `forRoot()` method.
+ *
+ * @see `forRoot()`
+ *
+ *
+ * @publicApi
+ */
+export declare interface ExtraOptions extends InMemoryScrollingOptions, RouterConfigOptions {
     /**
-     * Retrieves the first value for a parameter.
-     * @param param The parameter name.
-     * @returns The first value of the given parameter,
-     * or `null` if the parameter is not present.
+     * When true, log all internal navigation events to the console.
+     * Use for debugging.
      */
-    get(param: string): string | null;
+    enableTracing?: boolean;
     /**
-     * Retrieves all values for a  parameter.
-     * @param param The parameter name.
-     * @returns All values in a string array,
-     * or `null` if the parameter not present.
+     * When true, enable the location strategy that uses the URL fragment
+     * instead of the history API.
      */
-    getAll(param: string): string[] | null;
+    useHash?: boolean;
     /**
-     * Retrieves all the parameters for this body.
-     * @returns The parameter names in a string array.
+     * One of `enabled`, `enabledBlocking`, `enabledNonBlocking` or `disabled`.
+     * When set to `enabled` or `enabledBlocking`, the initial navigation starts before the root
+     * component is created. The bootstrap is blocked until the initial navigation is complete. This
+     * value is required for [server-side rendering](guide/universal) to work. When set to
+     * `enabledNonBlocking`, the initial navigation starts after the root component has been created.
+     * The bootstrap is not blocked on the completion of the initial navigation. When set to
+     * `disabled`, the initial navigation is not performed. The location listener is set up before the
+     * root component gets created. Use if there is a reason to have more control over when the router
+     * starts its initial navigation due to some complex initialization logic.
      */
-    keys(): string[];
+    initialNavigation?: InitialNavigation;
     /**
-     * Appends a new value to existing values for a parameter.
-     * @param param The parameter name.
-     * @param value The new value to add.
-     * @return A new body with the appended value.
+     * A custom error handler for failed navigations.
+     * If the handler returns a value, the navigation Promise is resolved with this value.
+     * If the handler throws an exception, the navigation Promise is rejected with the exception.
+     *
      */
-    append(param: string, value: string | number | boolean): HttpParams;
+    errorHandler?: ErrorHandler;
     /**
-     * Constructs a new body with appended values for the given parameter name.
-     * @param params parameters and values
-     * @return A new body with the new value.
+     * Configures a preloading strategy.
+     * One of `PreloadAllModules` or `NoPreloading` (the default).
      */
-    appendAll(params: {
-        [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-    }): HttpParams;
+    preloadingStrategy?: any;
     /**
-     * Replaces the value for a parameter.
-     * @param param The parameter name.
-     * @param value The new value.
-     * @return A new body with the new value.
+     * Configures the scroll offset the router will use when scrolling to an element.
+     *
+     * When given a tuple with x and y position value,
+     * the router uses that offset each time it scrolls.
+     * When given a function, the router invokes the function every time
+     * it restores scroll position.
      */
-    set(param: string, value: string | number | boolean): HttpParams;
+    scrollOffset?: [number, number] | (() => [number, number]);
     /**
-     * Removes a given value or all values from a parameter.
-     * @param param The parameter name.
-     * @param value The value to remove, if provided.
-     * @return A new body with the given value removed, or with all values
-     * removed if no value is specified.
-     */
-    delete(param: string, value?: string | number | boolean): HttpParams;
+     * A custom handler for malformed URI errors. The handler is invoked when `encodedURI` contains
+     * invalid character sequences.
+     * The default implementation is to redirect to the root URL, dropping
+     * any path or parameter information. The function takes three parameters:
+     *
+     * - `'URIError'` - Error thrown when parsing a bad URL.
+     * - `'UrlSerializer'` - UrlSerializer that’s configured with the router.
+     * - `'url'` -  The malformed URL that caused the URIError
+     * */
+    malformedUriErrorHandler?: (error: URIError, urlSerializer: UrlSerializer, url: string) => UrlTree;
     /**
-     * Serializes the body to an encoded string, where key-value pairs (separated by `=`) are
-     * separated by `&`s.
+     * Enables a bug fix that corrects relative link resolution in components with empty paths.
+     * Example:
+     *
+     * ```
+     * const routes = [
+     *   {
+     *     path: '',
+     *     component: ContainerComponent,
+     *     children: [
+     *       { path: 'a', component: AComponent },
+     *       { path: 'b', component: BComponent },
+     *     ]
+     *   }
+     * ];
+     * ```
+     *
+     * From the `ContainerComponent`, you should be able to navigate to `AComponent` using
+     * the following `routerLink`, but it will not work if `relativeLinkResolution` is set
+     * to `'legacy'`:
+     *
+     * `<a [routerLink]="['./a']">Link to A</a>`
+     *
+     * However, this will work:
+     *
+     * `<a [routerLink]="['../a']">Link to A</a>`
+     *
+     * In other words, you're required to use `../` rather than `./` when the relative link
+     * resolution is set to `'legacy'`.
+     *
+     * The default in v11 is `corrected`.
+     *
+     * @deprecated
      */
+    relativeLinkResolution?: 'legacy' | 'corrected';
+}
+
+/**
+ * An event triggered at the end of the Guard phase of routing.
+ *
+ * @see `GuardsCheckStart`
+ *
+ * @publicApi
+ */
+export declare class GuardsCheckEnd extends RouterEvent {
+    /** @docsNotRequired */
+    urlAfterRedirects: string;
+    /** @docsNotRequired */
+    state: RouterStateSnapshot;
+    /** @docsNotRequired */
+    shouldActivate: boolean;
+    readonly type = EventType.GuardsCheckEnd;
+    constructor(
+    /** @docsNotRequired */
+    id: number, 
+    /** @docsNotRequired */
+    url: string, 
+    /** @docsNotRequired */
+    urlAfterRedirects: string, 
+    /** @docsNotRequired */
+    state: RouterStateSnapshot, 
+    /** @docsNotRequired */
+    shouldActivate: boolean);
     toString(): string;
-    private clone;
-    private init;
 }
 
 /**
- * Options used to construct an `HttpParams` instance.
+ * An event triggered at the start of the Guard phase of routing.
+ *
+ * @see `GuardsCheckEnd`
  *
  * @publicApi
  */
-export declare interface HttpParamsOptions {
+export declare class GuardsCheckStart extends RouterEvent {
+    /** @docsNotRequired */
+    urlAfterRedirects: string;
+    /** @docsNotRequired */
+    state: RouterStateSnapshot;
+    readonly type = EventType.GuardsCheckStart;
+    constructor(
+    /** @docsNotRequired */
+    id: number, 
+    /** @docsNotRequired */
+    url: string, 
+    /** @docsNotRequired */
+    urlAfterRedirects: string, 
+    /** @docsNotRequired */
+    state: RouterStateSnapshot);
+    toString(): string;
+}
+
+declare namespace i1 {
+    export {
+        RouterOutletContract,
+        RouterOutlet
+    }
+}
+
+declare namespace i2 {
+    export {
+        RouterLink,
+        RouterLinkWithHref
+    }
+}
+
+declare namespace i3 {
+    export {
+        RouterLinkActive
+    }
+}
+
+declare namespace i4 {
+    export {
+        ɵEmptyOutletComponent,
+        ɵEmptyOutletComponent as EmptyOutletComponent
+    }
+}
+
+/**
+ * Allowed values in an `ExtraOptions` object that configure
+ * when the router performs the initial navigation operation.
+ *
+ * * 'enabledNonBlocking' - (default) The initial navigation starts after the
+ * root component has been created. The bootstrap is not blocked on the completion of the initial
+ * navigation.
+ * * 'enabledBlocking' - The initial navigation starts before the root component is created.
+ * The bootstrap is blocked until the initial navigation is complete. This value is required
+ * for [server-side rendering](guide/universal) to work.
+ * * 'disabled' - The initial navigation is not performed. The location listener is set up before
+ * the root component gets created. Use if there is a reason to have
+ * more control over when the router starts its initial navigation due to some complex
+ * initialization logic.
+ *
+ * @see `forRoot()`
+ *
+ * @publicApi
+ */
+export declare type InitialNavigation = 'disabled' | 'enabledBlocking' | 'enabledNonBlocking';
+
+/**
+ * A type alias for providers returned by `withEnabledBlockingInitialNavigation` or
+ * `withDisabledInitialNavigation` functions for use with `provideRouter`.
+ *
+ * @see `withEnabledBlockingInitialNavigation`
+ * @see `withDisabledInitialNavigation`
+ * @see `provideRouter`
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare type InitialNavigationFeature = EnabledBlockingInitialNavigationFeature | DisabledInitialNavigationFeature;
+
+/**
+ * A type alias for providers returned by `withInMemoryScrolling` for use with `provideRouter`.
+ *
+ * @see `withInMemoryScrolling`
+ * @see `provideRouter`
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare type InMemoryScrollingFeature = RouterFeature<RouterFeatureKind.InMemoryScrollingFeature>;
+
+/**
+ * Configuration options for the scrolling feature which can be used with `withInMemoryScrolling`
+ * function.
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare interface InMemoryScrollingOptions {
     /**
-     * String representation of the HTTP parameters in URL-query-string format.
-     * Mutually exclusive with `fromObject`.
+     * When set to 'enabled', scrolls to the anchor element when the URL has a fragment.
+     * Anchor scrolling is disabled by default.
+     *
+     * Anchor scrolling does not happen on 'popstate'. Instead, we restore the position
+     * that we stored or scroll to the top.
      */
-    fromString?: string;
-    /** Object map of the HTTP parameters. Mutually exclusive with `fromString`. */
-    fromObject?: {
-        [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
+    anchorScrolling?: 'disabled' | 'enabled';
+    /**
+     * Configures if the scroll position needs to be restored when navigating back.
+     *
+     * * 'disabled'- (Default) Does nothing. Scroll position is maintained on navigation.
+     * * 'top'- Sets the scroll position to x = 0, y = 0 on all navigation.
+     * * 'enabled'- Restores the previous scroll position on backward navigation, else sets the
+     * position to the anchor if one is provided, or sets the scroll position to [0, 0] (forward
+     * navigation). This option will be the default in the future.
+     *
+     * You can implement custom scroll restoration behavior by adapting the enabled behavior as
+     * in the following example.
+     *
+     * ```typescript
+     * class AppComponent {
+     *   movieData: any;
+     *
+     *   constructor(private router: Router, private viewportScroller: ViewportScroller,
+     * changeDetectorRef: ChangeDetectorRef) {
+     *   router.events.pipe(filter((event: Event): event is Scroll => event instanceof Scroll)
+     *     ).subscribe(e => {
+     *       fetch('http://example.com/movies.json').then(response => {
+     *         this.movieData = response.json();
+     *         // update the template with the data before restoring scroll
+     *         changeDetectorRef.detectChanges();
+     *
+     *         if (e.position) {
+     *           viewportScroller.scrollToPosition(e.position);
+     *         }
+     *       });
+     *     });
+     *   }
+     * }
+     * ```
+     */
+    scrollPositionRestoration?: 'disabled' | 'enabled' | 'top';
+}
+
+/**
+ * A set of options which specify how to determine if a `UrlTree` is active, given the `UrlTree`
+ * for the current router state.
+ *
+ * @publicApi
+ * @see Router.isActive
+ */
+export declare interface IsActiveMatchOptions {
+    /**
+     * Defines the strategy for comparing the matrix parameters of two `UrlTree`s.
+     *
+     * The matrix parameter matching is dependent on the strategy for matching the
+     * segments. That is, if the `paths` option is set to `'subset'`, only
+     * the matrix parameters of the matching segments will be compared.
+     *
+     * - `'exact'`: Requires that matching segments also have exact matrix parameter
+     * matches.
+     * - `'subset'`: The matching segments in the router's active `UrlTree` may contain
+     * extra matrix parameters, but those that exist in the `UrlTree` in question must match.
+     * - `'ignored'`: When comparing `UrlTree`s, matrix params will be ignored.
+     */
+    matrixParams: 'exact' | 'subset' | 'ignored';
+    /**
+     * Defines the strategy for comparing the query parameters of two `UrlTree`s.
+     *
+     * - `'exact'`: the query parameters must match exactly.
+     * - `'subset'`: the active `UrlTree` may contain extra parameters,
+     * but must match the key and value of any that exist in the `UrlTree` in question.
+     * - `'ignored'`: When comparing `UrlTree`s, query params will be ignored.
+     */
+    queryParams: 'exact' | 'subset' | 'ignored';
+    /**
+     * Defines the strategy for comparing the `UrlSegment`s of the `UrlTree`s.
+     *
+     * - `'exact'`: all segments in each `UrlTree` must match.
+     * - `'subset'`: a `UrlTree` will be determined to be active if it
+     * is a subtree of the active route. That is, the active route may contain extra
+     * segments, but must at least have all the segments of the `UrlTree` in question.
+     */
+    paths: 'exact' | 'subset';
+    /**
+     * - `'exact'`: indicates that the `UrlTree` fragments must be equal.
+     * - `'ignored'`: the fragments will not be compared when determining if a
+     * `UrlTree` is active.
+     */
+    fragment: 'exact' | 'ignored';
+}
+
+/**
+ *
+ * A function that returns a set of routes to load.
+ *
+ * @see `LoadChildrenCallback`
+ * @publicApi
+ */
+export declare type LoadChildren = LoadChildrenCallback;
+
+/**
+ *
+ * A function that is called to resolve a collection of lazy-loaded routes.
+ * Must be an arrow function of the following form:
+ * `() => import('...').then(mod => mod.MODULE)`
+ * or
+ * `() => import('...').then(mod => mod.ROUTES)`
+ *
+ * For example:
+ *
+ * ```
+ * [{
+ *   path: 'lazy',
+ *   loadChildren: () => import('./lazy-route/lazy.module').then(mod => mod.LazyModule),
+ * }];
+ * ```
+ * or
+ * ```
+ * [{
+ *   path: 'lazy',
+ *   loadChildren: () => import('./lazy-route/lazy.routes').then(mod => mod.ROUTES),
+ * }];
+ * ```
+ *
+ * @see [Route.loadChildren](api/router/Route#loadChildren)
+ * @publicApi
+ */
+export declare type LoadChildrenCallback = () => Type<any> | NgModuleFactory<any> | Routes | Observable<Type<any> | Routes> | Promise<NgModuleFactory<any> | Type<any> | Routes>;
+
+declare interface LoadedRouterConfig {
+    routes: Route[];
+    injector: EnvironmentInjector | undefined;
+}
+
+/**
+ * Information about a navigation operation.
+ * Retrieve the most recent navigation object with the
+ * [Router.getCurrentNavigation() method](api/router/Router#getcurrentnavigation) .
+ *
+ * * *id* : The unique identifier of the current navigation.
+ * * *initialUrl* : The target URL passed into the `Router#navigateByUrl()` call before navigation.
+ * This is the value before the router has parsed or applied redirects to it.
+ * * *extractedUrl* : The initial target URL after being parsed with `UrlSerializer.extract()`.
+ * * *finalUrl* : The extracted URL after redirects have been applied.
+ * This URL may not be available immediately, therefore this property can be `undefined`.
+ * It is guaranteed to be set after the `RoutesRecognized` event fires.
+ * * *trigger* : Identifies how this navigation was triggered.
+ * -- 'imperative'--Triggered by `router.navigateByUrl` or `router.navigate`.
+ * -- 'popstate'--Triggered by a popstate event.
+ * -- 'hashchange'--Triggered by a hashchange event.
+ * * *extras* : A `NavigationExtras` options object that controlled the strategy used for this
+ * navigation.
+ * * *previousNavigation* : The previously successful `Navigation` object. Only one previous
+ * navigation is available, therefore this previous `Navigation` object has a `null` value for its
+ * own `previousNavigation`.
+ *
+ * @publicApi
+ */
+export declare interface Navigation {
+    /**
+     * The unique identifier of the current navigation.
+     */
+    id: number;
+    /**
+     * The target URL passed into the `Router#navigateByUrl()` call before navigation. This is
+     * the value before the router has parsed or applied redirects to it.
+     */
+    initialUrl: UrlTree;
+    /**
+     * The initial target URL after being parsed with `UrlSerializer.extract()`.
+     */
+    extractedUrl: UrlTree;
+    /**
+     * The extracted URL after redirects have been applied.
+     * This URL may not be available immediately, therefore this property can be `undefined`.
+     * It is guaranteed to be set after the `RoutesRecognized` event fires.
+     */
+    finalUrl?: UrlTree;
+    /**
+     * Identifies how this navigation was triggered.
+     *
+     * * 'imperative'--Triggered by `router.navigateByUrl` or `router.navigate`.
+     * * 'popstate'--Triggered by a popstate event.
+     * * 'hashchange'--Triggered by a hashchange event.
+     */
+    trigger: 'imperative' | 'popstate' | 'hashchange';
+    /**
+     * Options that controlled the strategy used for this navigation.
+     * See `NavigationExtras`.
+     */
+    extras: NavigationExtras;
+    /**
+     * The previously successful `Navigation` object. Only one previous navigation
+     * is available, therefore this previous `Navigation` object has a `null` value
+     * for its own `previousNavigation`.
+     */
+    previousNavigation: Navigation | null;
+}
+
+/**
+ * @description
+ *
+ * Options that modify the `Router` navigation strategy.
+ * Supply an object containing any of these properties to a `Router` navigation function to
+ * control how the navigation should be handled.
+ *
+ * @see [Router.navigate() method](api/router/Router#navigate)
+ * @see [Router.navigateByUrl() method](api/router/Router#navigatebyurl)
+ * @see [Routing and Navigation guide](guide/router)
+ *
+ * @publicApi
+ */
+export declare interface NavigationBehaviorOptions {
+    /**
+     * When true, navigates without pushing a new state into history.
+     *
+     * ```
+     * // Navigate silently to /view
+     * this.router.navigate(['/view'], { skipLocationChange: true });
+     * ```
+     */
+    skipLocationChange?: boolean;
+    /**
+     * When true, navigates while replacing the current state in history.
+     *
+     * ```
+     * // Navigate to /view
+     * this.router.navigate(['/view'], { replaceUrl: true });
+     * ```
+     */
+    replaceUrl?: boolean;
+    /**
+     * Developer-defined state that can be passed to any navigation.
+     * Access this value through the `Navigation.extras` object
+     * returned from the [Router.getCurrentNavigation()
+     * method](api/router/Router#getcurrentnavigation) while a navigation is executing.
+     *
+     * After a navigation completes, the router writes an object containing this
+     * value together with a `navigationId` to `history.state`.
+     * The value is written when `location.go()` or `location.replaceState()`
+     * is called before activating this route.
+     *
+     * Note that `history.state` does not pass an object equality test because
+     * the router adds the `navigationId` on each navigation.
+     *
+     */
+    state?: {
+        [k: string]: any;
     };
-    /** Encoding codec used to parse and serialize the parameters. */
-    encoder?: HttpParameterCodec;
 }
 
 /**
- * Base interface for progress events.
+ * An event triggered when a navigation is canceled, directly or indirectly.
+ * This can happen for several reasons including when a route guard
+ * returns `false` or initiates a redirect by returning a `UrlTree`.
+ *
+ * @see `NavigationStart`
+ * @see `NavigationEnd`
+ * @see `NavigationError`
  *
  * @publicApi
  */
-export declare interface HttpProgressEvent {
+export declare class NavigationCancel extends RouterEvent {
     /**
-     * Progress event type is either upload or download.
+     * A description of why the navigation was cancelled. For debug purposes only. Use `code`
+     * instead for a stable cancellation reason that can be used in production.
      */
-    type: HttpEventType.DownloadProgress | HttpEventType.UploadProgress;
+    reason: string;
     /**
-     * Number of bytes uploaded or downloaded.
+     * A code to indicate why the navigation was canceled. This cancellation code is stable for
+     * the reason and can be relied on whereas the `reason` string could change and should not be
+     * used in production.
      */
-    loaded: number;
+    readonly code?: NavigationCancellationCode | undefined;
+    readonly type = EventType.NavigationCancel;
+    constructor(
+    /** @docsNotRequired */
+    id: number, 
+    /** @docsNotRequired */
+    url: string, 
     /**
-     * Total number of bytes to upload or download. Depending on the request or
-     * response, this may not be computable and thus may not be present.
+     * A description of why the navigation was cancelled. For debug purposes only. Use `code`
+     * instead for a stable cancellation reason that can be used in production.
      */
-    total?: number;
+    reason: string, 
+    /**
+     * A code to indicate why the navigation was canceled. This cancellation code is stable for
+     * the reason and can be relied on whereas the `reason` string could change and should not be
+     * used in production.
+     */
+    code?: NavigationCancellationCode | undefined);
+    /** @docsNotRequired */
+    toString(): string;
 }
 
 /**
- * An outgoing HTTP request with an optional typed body.
- *
- * `HttpRequest` represents an outgoing request, including URL, method,
- * headers, body, and other request configuration options. Instances should be
- * assumed to be immutable. To modify a `HttpRequest`, the `clone`
- * method should be used.
+ * A code for the `NavigationCancel` event of the `Router` to indicate the
+ * reason a navigation failed.
  *
  * @publicApi
  */
-export declare class HttpRequest<T> {
-    readonly url: string;
+export declare const enum NavigationCancellationCode {
     /**
-     * The request body, or `null` if one isn't set.
+     * A navigation failed because a guard returned a `UrlTree` to redirect.
+     */
+    Redirect = 0,
+    /**
+     * A navigation failed because a more recent navigation started.
+     */
+    SupersededByNewNavigation = 1,
+    /**
+     * A navigation failed because one of the resolvers completed without emiting a value.
+     */
+    NoDataFromResolver = 2,
+    /**
+     * A navigation failed because a guard returned `false`.
+     */
+    GuardRejected = 3
+}
+
+/**
+ * An event triggered when a navigation ends successfully.
+ *
+ * @see `NavigationStart`
+ * @see `NavigationCancel`
+ * @see `NavigationError`
+ *
+ * @publicApi
+ */
+export declare class NavigationEnd extends RouterEvent {
+    /** @docsNotRequired */
+    urlAfterRedirects: string;
+    readonly type = EventType.NavigationEnd;
+    constructor(
+    /** @docsNotRequired */
+    id: number, 
+    /** @docsNotRequired */
+    url: string, 
+    /** @docsNotRequired */
+    urlAfterRedirects: string);
+    /** @docsNotRequired */
+    toString(): string;
+}
+
+/**
+ * An event triggered when a navigation fails due to an unexpected error.
+ *
+ * @see `NavigationStart`
+ * @see `NavigationEnd`
+ * @see `NavigationCancel`
+ *
+ * @publicApi
+ */
+export declare class NavigationError extends RouterEvent {
+    /** @docsNotRequired */
+    error: any;
+    /**
+     * The target of the navigation when the error occurred.
      *
-     * Bodies are not enforced to be immutable, as they can include a reference to any
-     * user-defined data type. However, interceptors should take care to preserve
-     * idempotence by treating them as such.
+     * Note that this can be `undefined` because an error could have occurred before the
+     * `RouterStateSnapshot` was created for the navigation.
      */
-    readonly body: T | null;
+    readonly target?: RouterStateSnapshot | undefined;
+    readonly type = EventType.NavigationError;
+    constructor(
+    /** @docsNotRequired */
+    id: number, 
+    /** @docsNotRequired */
+    url: string, 
+    /** @docsNotRequired */
+    error: any, 
     /**
-     * Outgoing headers for this request.
-     */
-    readonly headers: HttpHeaders;
-    /**
-     * Shared and mutable context that can be used by interceptors
-     */
-    readonly context: HttpContext;
-    /**
-     * Whether this request should be made in a way that exposes progress events.
+     * The target of the navigation when the error occurred.
      *
-     * Progress events are expensive (change detection runs on each event) and so
-     * they should only be requested if the consumer intends to monitor them.
+     * Note that this can be `undefined` because an error could have occurred before the
+     * `RouterStateSnapshot` was created for the navigation.
      */
-    readonly reportProgress: boolean;
+    target?: RouterStateSnapshot | undefined);
+    /** @docsNotRequired */
+    toString(): string;
+}
+
+/**
+ * @description
+ *
+ * Options that modify the `Router` navigation strategy.
+ * Supply an object containing any of these properties to a `Router` navigation function to
+ * control how the target URL should be constructed or interpreted.
+ *
+ * @see [Router.navigate() method](api/router/Router#navigate)
+ * @see [Router.navigateByUrl() method](api/router/Router#navigatebyurl)
+ * @see [Router.createUrlTree() method](api/router/Router#createurltree)
+ * @see [Routing and Navigation guide](guide/router)
+ * @see UrlCreationOptions
+ * @see NavigationBehaviorOptions
+ *
+ * @publicApi
+ */
+export declare interface NavigationExtras extends UrlCreationOptions, NavigationBehaviorOptions {
+}
+
+/**
+ * An event triggered when a navigation starts.
+ *
+ * @publicApi
+ */
+export declare class NavigationStart extends RouterEvent {
+    readonly type = EventType.NavigationStart;
     /**
-     * Whether this request should be sent with outgoing credentials (cookies).
-     */
-    readonly withCredentials: boolean;
-    /**
-     * The expected response type of the server.
+     * Identifies the call or event that triggered the navigation.
+     * An `imperative` trigger is a call to `router.navigateByUrl()` or `router.navigate()`.
      *
-     * This is used to parse the response appropriately before returning it to
-     * the requestee.
+     * @see `NavigationEnd`
+     * @see `NavigationCancel`
+     * @see `NavigationError`
      */
-    readonly responseType: 'arraybuffer' | 'blob' | 'json' | 'text';
+    navigationTrigger?: NavigationTrigger;
     /**
-     * The outgoing HTTP request method.
-     */
-    readonly method: string;
-    /**
-     * Outgoing URL parameters.
+     * The navigation state that was previously supplied to the `pushState` call,
+     * when the navigation is triggered by a `popstate` event. Otherwise null.
      *
-     * To pass a string representation of HTTP parameters in the URL-query-string format,
-     * the `HttpParamsOptions`' `fromString` may be used. For example:
+     * The state object is defined by `NavigationExtras`, and contains any
+     * developer-defined state value, as well as a unique ID that
+     * the router assigns to every router transition/navigation.
+     *
+     * From the perspective of the router, the router never "goes back".
+     * When the user clicks on the back button in the browser,
+     * a new navigation ID is created.
+     *
+     * Use the ID in this previous-state object to differentiate between a newly created
+     * state and one returned to by a `popstate` event, so that you can restore some
+     * remembered state, such as scroll position.
+     *
+     */
+    restoredState?: {
+        [k: string]: any;
+        navigationId: number;
+    } | null;
+    constructor(
+    /** @docsNotRequired */
+    id: number, 
+    /** @docsNotRequired */
+    url: string, 
+    /** @docsNotRequired */
+    navigationTrigger?: NavigationTrigger, 
+    /** @docsNotRequired */
+    restoredState?: {
+        [k: string]: any;
+        navigationId: number;
+    } | null);
+    /** @docsNotRequired */
+    toString(): string;
+}
+
+/**
+ * Identifies the call or event that triggered a navigation.
+ *
+ * * 'imperative': Triggered by `router.navigateByUrl()` or `router.navigate()`.
+ * * 'popstate' : Triggered by a `popstate` event.
+ * * 'hashchange'-: Triggered by a `hashchange` event.
+ *
+ * @publicApi
+ */
+declare type NavigationTrigger = 'imperative' | 'popstate' | 'hashchange';
+
+/**
+ * @description
+ *
+ * Provides a preloading strategy that does not preload any modules.
+ *
+ * This strategy is enabled by default.
+ *
+ * @publicApi
+ */
+export declare class NoPreloading implements PreloadingStrategy {
+    preload(route: Route, fn: () => Observable<any>): Observable<any>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<NoPreloading, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<NoPreloading>;
+}
+
+/**
+ * Store contextual information about a `RouterOutlet`
+ *
+ * @publicApi
+ */
+export declare class OutletContext {
+    outlet: RouterOutletContract | null;
+    route: ActivatedRoute | null;
+    /**
+     * @deprecated Passing a resolver to retrieve a component factory is not required and is
+     *     deprecated since v14.
+     */
+    resolver: ComponentFactoryResolver | null;
+    injector: EnvironmentInjector | null;
+    children: ChildrenOutletContexts;
+    attachRef: ComponentRef<any> | null;
+}
+
+/**
+ * A map that provides access to the required and optional parameters
+ * specific to a route.
+ * The map supports retrieving a single value with `get()`
+ * or multiple values with `getAll()`.
+ *
+ * @see [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams)
+ *
+ * @publicApi
+ */
+export declare interface ParamMap {
+    /**
+     * Reports whether the map contains a given parameter.
+     * @param name The parameter name.
+     * @returns True if the map contains the given parameter, false otherwise.
+     */
+    has(name: string): boolean;
+    /**
+     * Retrieves a single value for a parameter.
+     * @param name The parameter name.
+     * @return The parameter's single value,
+     * or the first value if the parameter has multiple values,
+     * or `null` when there is no such parameter.
+     */
+    get(name: string): string | null;
+    /**
+     * Retrieves multiple values for a parameter.
+     * @param name The parameter name.
+     * @return An array containing one or more values,
+     * or an empty array if there is no such parameter.
+     *
+     */
+    getAll(name: string): string[];
+    /** Names of the parameters in the map. */
+    readonly keys: string[];
+}
+
+/**
+ * A collection of matrix and query URL parameters.
+ * @see `convertToParamMap()`
+ * @see `ParamMap`
+ *
+ * @publicApi
+ */
+export declare type Params = {
+    [key: string]: any;
+};
+
+/**
+ * @description
+ *
+ * Provides a preloading strategy that preloads all modules as quickly as possible.
+ *
+ * ```
+ * RouterModule.forRoot(ROUTES, {preloadingStrategy: PreloadAllModules})
+ * ```
+ *
+ * @publicApi
+ */
+export declare class PreloadAllModules implements PreloadingStrategy {
+    preload(route: Route, fn: () => Observable<any>): Observable<any>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<PreloadAllModules, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<PreloadAllModules>;
+}
+
+/**
+ * A type alias that represents a feature which enables preloading in Router.
+ * The type is used to describe the return value of the `withPreloading` function.
+ *
+ * @see `withPreloading`
+ * @see `provideRouter`
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare type PreloadingFeature = RouterFeature<RouterFeatureKind.PreloadingFeature>;
+
+/**
+ * @description
+ *
+ * Provides a preloading strategy.
+ *
+ * @publicApi
+ */
+export declare abstract class PreloadingStrategy {
+    abstract preload(route: Route, fn: () => Observable<any>): Observable<any>;
+}
+
+/**
+ * The primary routing outlet.
+ *
+ * @publicApi
+ */
+export declare const PRIMARY_OUTLET = "primary";
+
+/**
+ * Sets up providers necessary to enable `Router` functionality for the application.
+ * Allows to configure a set of routes as well as extra features that should be enabled.
+ *
+ * @usageNotes
+ *
+ * Basic example of how you can add a Router to your application:
+ * ```
+ * const appRoutes: Routes = [];
+ * bootstrapApplication(AppComponent, {
+ *   providers: [provideRouter(appRoutes)]
+ * });
+ * ```
+ *
+ * You can also enable optional features in the Router by adding functions from the `RouterFeatures`
+ * type:
+ * ```
+ * const appRoutes: Routes = [];
+ * bootstrapApplication(AppComponent,
+ *   {
+ *     providers: [
+ *       provideRouter(appRoutes,
+ *         withDebugTracing(),
+ *         withRouterConfig({paramsInheritanceStrategy: 'always'}))
+ *     ]
+ *   }
+ * );
+ * ```
+ *
+ * @see `RouterFeatures`
+ *
+ * @publicApi
+ * @developerPreview
+ * @param routes A set of `Route`s to use for the application routing table.
+ * @param features Optional features to configure additional router behaviors.
+ * @returns A set of providers to setup a Router.
+ */
+export declare function provideRouter(routes: Routes, ...features: RouterFeatures[]): Provider[];
+
+/**
+ * Registers a [DI provider](guide/glossary#provider) for a set of routes.
+ * @param routes The route configuration to provide.
+ *
+ * @usageNotes
+ *
+ * ```
+ * @NgModule({
+ *   providers: [provideRoutes(ROUTES)]
+ * })
+ * class LazyLoadedChildModule {}
+ * ```
+ *
+ * @publicApi
+ */
+export declare function provideRoutes(routes: Routes): Provider[];
+
+/**
+ *
+ * How to handle query parameters in a router link.
+ * One of:
+ * - `"merge"` : Merge new parameters with current parameters.
+ * - `"preserve"` : Preserve current parameters.
+ * - `""` : Replace current parameters with new parameters. This is the default behavior.
+ *
+ * @see `UrlCreationOptions#queryParamsHandling`
+ * @see `RouterLink`
+ * @publicApi
+ */
+export declare type QueryParamsHandling = 'merge' | 'preserve' | '';
+
+/**
+ * @description
+ *
+ * Interface that classes can implement to be a data provider.
+ * A data provider class can be used with the router to resolve data during navigation.
+ * The interface defines a `resolve()` method that is invoked right after the `ResolveStart`
+ * router event. The router waits for the data to be resolved before the route is finally activated.
+ *
+ * The following example implements a `resolve()` method that retrieves the data
+ * needed to activate the requested route.
+ *
+ * ```
+ * @Injectable({ providedIn: 'root' })
+ * export class HeroResolver implements Resolve<Hero> {
+ *   constructor(private service: HeroService) {}
+ *
+ *   resolve(
+ *     route: ActivatedRouteSnapshot,
+ *     state: RouterStateSnapshot
+ *   ): Observable<Hero>|Promise<Hero>|Hero {
+ *     return this.service.getHero(route.paramMap.get('id'));
+ *   }
+ * }
+ * ```
+ *
+ * Here, the defined `resolve()` function is provided as part of the `Route` object
+ * in the router configuration:
+ *
+ * ```
+
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'detail/:id',
+ *         component: HeroDetailComponent,
+ *         resolve: {
+ *           hero: HeroResolver
+ *         }
+ *       }
+ *     ])
+ *   ],
+ *   exports: [RouterModule]
+ * })
+ * export class AppRoutingModule {}
+ * ```
+ *
+ * You can alternatively provide an in-line function with the `ResolveFn` signature:
+ *
+ * ```
+ * export const myHero: Hero = {
+ *   // ...
+ * }
+ *
+ * @NgModule({
+ *   imports: [
+ *     RouterModule.forRoot([
+ *       {
+ *         path: 'detail/:id',
+ *         component: HeroComponent,
+ *         resolve: {
+ *           hero: (route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => myHero
+ *         }
+ *       }
+ *     ])
+ *   ],
+ * })
+ * export class AppModule {}
+ * ```
+ *
+ * And you can access to your resolved data from `HeroComponent`:
+ *
+ * ```
+ * @Component({
+ *  selector: "app-hero",
+ *  templateUrl: "hero.component.html",
+ * })
+ * export class HeroComponent {
+ *
+ *  constructor(private activatedRoute: ActivatedRoute) {}
+ *
+ *  ngOnInit() {
+ *    this.activatedRoute.data.subscribe(({ hero }) => {
+ *      // do something with your resolved data ...
+ *    })
+ *  }
+ *
+ * }
+ * ```
+ *
+ * @usageNotes
+ *
+ * When both guard and resolvers are specified, the resolvers are not executed until
+ * all guards have run and succeeded.
+ * For example, consider the following route configuration:
+ *
+ * ```
+ * {
+ *  path: 'base'
+ *  canActivate: [BaseGuard],
+ *  resolve: {data: BaseDataResolver}
+ *  children: [
+ *   {
+ *     path: 'child',
+ *     guards: [ChildGuard],
+ *     component: ChildComponent,
+ *     resolve: {childData: ChildDataResolver}
+ *    }
+ *  ]
+ * }
+ * ```
+ * The order of execution is: BaseGuard, ChildGuard, BaseDataResolver, ChildDataResolver.
+ *
+ * @publicApi
+ */
+export declare interface Resolve<T> {
+    resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<T> | Promise<T> | T;
+}
+
+/**
+ *
+ * Represents the resolved data associated with a particular route.
+ *
+ * @see `Route#resolve`.
+ *
+ * @publicApi
+ */
+export declare type ResolveData = {
+    [key: string | symbol]: any | ResolveFn<unknown>;
+};
+
+/**
+ * An event triggered at the end of the Resolve phase of routing.
+ * @see `ResolveStart`.
+ *
+ * @publicApi
+ */
+export declare class ResolveEnd extends RouterEvent {
+    /** @docsNotRequired */
+    urlAfterRedirects: string;
+    /** @docsNotRequired */
+    state: RouterStateSnapshot;
+    readonly type = EventType.ResolveEnd;
+    constructor(
+    /** @docsNotRequired */
+    id: number, 
+    /** @docsNotRequired */
+    url: string, 
+    /** @docsNotRequired */
+    urlAfterRedirects: string, 
+    /** @docsNotRequired */
+    state: RouterStateSnapshot);
+    toString(): string;
+}
+
+/**
+ * Function type definition for a data provider.
+ *
+ * @see `Route#resolve`.
+ * @publicApi
+ */
+export declare type ResolveFn<T> = (route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => Observable<T> | Promise<T> | T;
+
+/**
+ * An event triggered at the start of the Resolve phase of routing.
+ *
+ * Runs in the "resolve" phase whether or not there is anything to resolve.
+ * In future, may change to only run when there are things to be resolved.
+ *
+ * @see `ResolveEnd`
+ *
+ * @publicApi
+ */
+export declare class ResolveStart extends RouterEvent {
+    /** @docsNotRequired */
+    urlAfterRedirects: string;
+    /** @docsNotRequired */
+    state: RouterStateSnapshot;
+    readonly type = EventType.ResolveStart;
+    constructor(
+    /** @docsNotRequired */
+    id: number, 
+    /** @docsNotRequired */
+    url: string, 
+    /** @docsNotRequired */
+    urlAfterRedirects: string, 
+    /** @docsNotRequired */
+    state: RouterStateSnapshot);
+    toString(): string;
+}
+
+/**
+ * A configuration object that defines a single route.
+ * A set of routes are collected in a `Routes` array to define a `Router` configuration.
+ * The router attempts to match segments of a given URL against each route,
+ * using the configuration options defined in this object.
+ *
+ * Supports static, parameterized, redirect, and wildcard routes, as well as
+ * custom route data and resolve methods.
+ *
+ * For detailed usage information, see the [Routing Guide](guide/router).
+ *
+ * @usageNotes
+ *
+ * ### Simple Configuration
+ *
+ * The following route specifies that when navigating to, for example,
+ * `/team/11/user/bob`, the router creates the 'Team' component
+ * with the 'User' child component in it.
+ *
+ * ```
+ * [{
+ *   path: 'team/:id',
+ *  component: Team,
+ *   children: [{
+ *     path: 'user/:name',
+ *     component: User
+ *   }]
+ * }]
+ * ```
+ *
+ * ### Multiple Outlets
+ *
+ * The following route creates sibling components with multiple outlets.
+ * When navigating to `/team/11(aux:chat/jim)`, the router creates the 'Team' component next to
+ * the 'Chat' component. The 'Chat' component is placed into the 'aux' outlet.
+ *
+ * ```
+ * [{
+ *   path: 'team/:id',
+ *   component: Team
+ * }, {
+ *   path: 'chat/:user',
+ *   component: Chat
+ *   outlet: 'aux'
+ * }]
+ * ```
+ *
+ * ### Wild Cards
+ *
+ * The following route uses wild-card notation to specify a component
+ * that is always instantiated regardless of where you navigate to.
+ *
+ * ```
+ * [{
+ *   path: '**',
+ *   component: WildcardComponent
+ * }]
+ * ```
+ *
+ * ### Redirects
+ *
+ * The following route uses the `redirectTo` property to ignore a segment of
+ * a given URL when looking for a child path.
+ *
+ * When navigating to '/team/11/legacy/user/jim', the router changes the URL segment
+ * '/team/11/legacy/user/jim' to '/team/11/user/jim', and then instantiates
+ * the Team component with the User child component in it.
+ *
+ * ```
+ * [{
+ *   path: 'team/:id',
+ *   component: Team,
+ *   children: [{
+ *     path: 'legacy/user/:name',
+ *     redirectTo: 'user/:name'
+ *   }, {
+ *     path: 'user/:name',
+ *     component: User
+ *   }]
+ * }]
+ * ```
+ *
+ * The redirect path can be relative, as shown in this example, or absolute.
+ * If we change the `redirectTo` value in the example to the absolute URL segment '/user/:name',
+ * the result URL is also absolute, '/user/jim'.
+
+ * ### Empty Path
+ *
+ * Empty-path route configurations can be used to instantiate components that do not 'consume'
+ * any URL segments.
+ *
+ * In the following configuration, when navigating to
+ * `/team/11`, the router instantiates the 'AllUsers' component.
+ *
+ * ```
+ * [{
+ *   path: 'team/:id',
+ *   component: Team,
+ *   children: [{
+ *     path: '',
+ *     component: AllUsers
+ *   }, {
+ *     path: 'user/:name',
+ *     component: User
+ *   }]
+ * }]
+ * ```
+ *
+ * Empty-path routes can have children. In the following example, when navigating
+ * to `/team/11/user/jim`, the router instantiates the wrapper component with
+ * the user component in it.
+ *
+ * Note that an empty path route inherits its parent's parameters and data.
+ *
+ * ```
+ * [{
+ *   path: 'team/:id',
+ *   component: Team,
+ *   children: [{
+ *     path: '',
+ *     component: WrapperCmp,
+ *     children: [{
+ *       path: 'user/:name',
+ *       component: User
+ *     }]
+ *   }]
+ * }]
+ * ```
+ *
+ * ### Matching Strategy
+ *
+ * The default path-match strategy is 'prefix', which means that the router
+ * checks URL elements from the left to see if the URL matches a specified path.
+ * For example, '/team/11/user' matches 'team/:id'.
+ *
+ * ```
+ * [{
+ *   path: '',
+ *   pathMatch: 'prefix', //default
+ *   redirectTo: 'main'
+ * }, {
+ *   path: 'main',
+ *   component: Main
+ * }]
+ * ```
+ *
+ * You can specify the path-match strategy 'full' to make sure that the path
+ * covers the whole unconsumed URL. It is important to do this when redirecting
+ * empty-path routes. Otherwise, because an empty path is a prefix of any URL,
+ * the router would apply the redirect even when navigating to the redirect destination,
+ * creating an endless loop.
+ *
+ * In the following example, supplying the 'full' `pathMatch` strategy ensures
+ * that the router applies the redirect if and only if navigating to '/'.
+ *
+ * ```
+ * [{
+ *   path: '',
+ *   pathMatch: 'full',
+ *   redirectTo: 'main'
+ * }, {
+ *   path: 'main',
+ *   component: Main
+ * }]
+ * ```
+ *
+ * ### Componentless Routes
+ *
+ * You can share parameters between sibling components.
+ * For example, suppose that two sibling components should go next to each other,
+ * and both of them require an ID parameter. You can accomplish this using a route
+ * that does not specify a component at the top level.
+ *
+ * In the following example, 'MainChild' and 'AuxChild' are siblings.
+ * When navigating to 'parent/10/(a//aux:b)', the route instantiates
+ * the main child and aux child components next to each other.
+ * For this to work, the application component must have the primary and aux outlets defined.
+ *
+ * ```
+ * [{
+ *    path: 'parent/:id',
+ *    children: [
+ *      { path: 'a', component: MainChild },
+ *      { path: 'b', component: AuxChild, outlet: 'aux' }
+ *    ]
+ * }]
+ * ```
+ *
+ * The router merges the parameters, data, and resolve of the componentless
+ * parent into the parameters, data, and resolve of the children.
+ *
+ * This is especially useful when child components are defined
+ * with an empty path string, as in the following example.
+ * With this configuration, navigating to '/parent/10' creates
+ * the main child and aux components.
+ *
+ * ```
+ * [{
+ *    path: 'parent/:id',
+ *    children: [
+ *      { path: '', component: MainChild },
+ *      { path: '', component: AuxChild, outlet: 'aux' }
+ *    ]
+ * }]
+ * ```
+ *
+ * ### Lazy Loading
+ *
+ * Lazy loading speeds up application load time by splitting the application
+ * into multiple bundles and loading them on demand.
+ * To use lazy loading, provide the `loadChildren` property in the `Route` object,
+ * instead of the `children` property.
+ *
+ * Given the following example route, the router will lazy load
+ * the associated module on demand using the browser native import system.
+ *
+ * ```
+ * [{
+ *   path: 'lazy',
+ *   loadChildren: () => import('./lazy-route/lazy.module').then(mod => mod.LazyModule),
+ * }];
+ * ```
+ *
+ * @publicApi
+ */
+export declare interface Route {
+    /**
+     * Used to define a page title for the route. This can be a static string or an `Injectable` that
+     * implements `Resolve`.
+     *
+     * @see `PageTitleStrategy`
+     */
+    title?: string | Type<Resolve<string>> | ResolveFn<string>;
+    /**
+     * The path to match against. Cannot be used together with a custom `matcher` function.
+     * A URL string that uses router matching notation.
+     * Can be a wild card (`**`) that matches any URL (see Usage Notes below).
+     * Default is "/" (the root path).
+     *
+     */
+    path?: string;
+    /**
+     * The path-matching strategy, one of 'prefix' or 'full'.
+     * Default is 'prefix'.
+     *
+     * By default, the router checks URL elements from the left to see if the URL
+     * matches a given path and stops when there is a config match. Importantly there must still be a
+     * config match for each segment of the URL. For example, '/team/11/user' matches the prefix
+     * 'team/:id' if one of the route's children matches the segment 'user'. That is, the URL
+     * '/team/11/user' matches the config
+     * `{path: 'team/:id', children: [{path: ':user', component: User}]}`
+     * but does not match when there are no children as in `{path: 'team/:id', component: Team}`.
+     *
+     * The path-match strategy 'full' matches against the entire URL.
+     * It is important to do this when redirecting empty-path routes.
+     * Otherwise, because an empty path is a prefix of any URL,
+     * the router would apply the redirect even when navigating
+     * to the redirect destination, creating an endless loop.
+     *
+     */
+    pathMatch?: 'prefix' | 'full';
+    /**
+     * A custom URL-matching function. Cannot be used together with `path`.
+     */
+    matcher?: UrlMatcher;
+    /**
+     * The component to instantiate when the path matches.
+     * Can be empty if child routes specify components.
+     */
+    component?: Type<any>;
+    /**
+     * An object specifying a lazy-loaded component.
+     */
+    loadComponent?: () => Type<unknown> | Observable<Type<unknown>> | Promise<Type<unknown>>;
+    /**
+     * A URL to redirect to when the path matches.
+     *
+     * Absolute if the URL begins with a slash (/), otherwise relative to the path URL.
+     * Note that no further redirects are evaluated after an absolute redirect.
+     *
+     * When not present, router does not redirect.
+     */
+    redirectTo?: string;
+    /**
+     * Name of a `RouterOutlet` object where the component can be placed
+     * when the path matches.
+     */
+    outlet?: string;
+    /**
+     * An array of `CanActivateFn` or DI tokens used to look up `CanActivate()`
+     * handlers, in order to determine if the current user is allowed to
+     * activate the component. By default, any user can activate.
+     *
+     * When using a function rather than DI tokens, the function can call `inject` to get any required
+     * dependencies. This `inject` call must be done in a synchronous context.
+     */
+    canActivate?: Array<CanActivateFn | any>;
+    /**
+     * An array of `CanMatchFn` or DI tokens used to look up `CanMatch()`
+     * handlers, in order to determine if the current user is allowed to
+     * match the `Route`. By default, any route can match.
+     *
+     * When using a function rather than DI tokens, the function can call `inject` to get any required
+     * dependencies. This `inject` call must be done in a synchronous context.
+     */
+    canMatch?: Array<Type<CanMatch> | InjectionToken<CanMatchFn> | CanMatchFn>;
+    /**
+     * An array of `CanActivateChildFn` or DI tokens used to look up `CanActivateChild()` handlers,
+     * in order to determine if the current user is allowed to activate
+     * a child of the component. By default, any user can activate a child.
+     *
+     * When using a function rather than DI tokens, the function can call `inject` to get any required
+     * dependencies. This `inject` call must be done in a synchronous context.
+     */
+    canActivateChild?: Array<CanActivateChildFn | any>;
+    /**
+     * An array of `CanDeactivateFn` or DI tokens used to look up `CanDeactivate()`
+     * handlers, in order to determine if the current user is allowed to
+     * deactivate the component. By default, any user can deactivate.
+     *
+     * When using a function rather than DI tokens, the function can call `inject` to get any required
+     * dependencies. This `inject` call must be done in a synchronous context.
+     */
+    canDeactivate?: Array<CanDeactivateFn<any> | any>;
+    /**
+     * An array of `CanLoadFn` or DI tokens used to look up `CanLoad()`
+     * handlers, in order to determine if the current user is allowed to
+     * load the component. By default, any user can load.
+     *
+     * When using a function rather than DI tokens, the function can call `inject` to get any required
+     * dependencies. This `inject` call must be done in a synchronous context.
+     */
+    canLoad?: Array<CanLoadFn | any>;
+    /**
+     * Additional developer-defined data provided to the component via
+     * `ActivatedRoute`. By default, no additional data is passed.
+     */
+    data?: Data;
+    /**
+     * A map of DI tokens used to look up data resolvers. See `Resolve`.
+     */
+    resolve?: ResolveData;
+    /**
+     * An array of child `Route` objects that specifies a nested route
+     * configuration.
+     */
+    children?: Routes;
+    /**
+     * An object specifying lazy-loaded child routes.
+     */
+    loadChildren?: LoadChildren;
+    /**
+     * Defines when guards and resolvers will be run. One of
+     * - `paramsOrQueryParamsChange` : Run when query parameters change.
+     * - `always` : Run on every execution.
+     * By default, guards and resolvers run only when the matrix
+     * parameters of the route change.
+     *
+     * @see RunGuardsAndResolvers
+     */
+    runGuardsAndResolvers?: RunGuardsAndResolvers;
+    /**
+     * A `Provider` array to use for this `Route` and its `children`.
+     *
+     * The `Router` will create a new `EnvironmentInjector` for this
+     * `Route` and use it for this `Route` and its `children`. If this
+     * route also has a `loadChildren` function which returns an `NgModuleRef`, this injector will be
+     * used as the parent of the lazy loaded module.
+     */
+    providers?: Array<Provider | ImportedNgModuleProviders>;
+}
+
+/**
+ * An event triggered when a route has been lazy loaded.
+ *
+ * @see `RouteConfigLoadStart`
+ *
+ * @publicApi
+ */
+export declare class RouteConfigLoadEnd {
+    /** @docsNotRequired */
+    route: Route;
+    readonly type = EventType.RouteConfigLoadEnd;
+    constructor(
+    /** @docsNotRequired */
+    route: Route);
+    toString(): string;
+}
+
+/**
+ * An event triggered before lazy loading a route configuration.
+ *
+ * @see `RouteConfigLoadEnd`
+ *
+ * @publicApi
+ */
+export declare class RouteConfigLoadStart {
+    /** @docsNotRequired */
+    route: Route;
+    readonly type = EventType.RouteConfigLoadStart;
+    constructor(
+    /** @docsNotRequired */
+    route: Route);
+    toString(): string;
+}
+
+/**
+ * @description
+ *
+ * A service that provides navigation among views and URL manipulation capabilities.
+ *
+ * @see `Route`.
+ * @see [Routing and Navigation Guide](guide/router).
+ *
+ * @ngModule RouterModule
+ *
+ * @publicApi
+ */
+export declare class Router {
+    private rootComponentType;
+    private urlSerializer;
+    private rootContexts;
+    private location;
+    config: Routes;
+    /**
+     * Represents the activated `UrlTree` that the `Router` is configured to handle (through
+     * `UrlHandlingStrategy`). That is, after we find the route config tree that we're going to
+     * activate, run guards, and are just about to activate the route, we set the currentUrlTree.
+     *
+     * This should match the `browserUrlTree` when a navigation succeeds. If the
+     * `UrlHandlingStrategy.shouldProcessUrl` is `false`, only the `browserUrlTree` is updated.
+     */
+    private currentUrlTree;
+    /**
+     * Meant to represent the entire browser url after a successful navigation. In the life of a
+     * navigation transition:
+     * 1. The rawUrl represents the full URL that's being navigated to
+     * 2. We apply redirects, which might only apply to _part_ of the URL (due to
+     * `UrlHandlingStrategy`).
+     * 3. Right before activation (because we assume activation will succeed), we update the
+     * rawUrlTree to be a combination of the urlAfterRedirects (again, this might only apply to part
+     * of the initial url) and the rawUrl of the transition (which was the original navigation url in
+     * its full form).
+     */
+    private rawUrlTree;
+    /**
+     * Meant to represent the part of the browser url that the `Router` is set up to handle (via the
+     * `UrlHandlingStrategy`). This value is updated immediately after the browser url is updated (or
+     * the browser url update is skipped via `skipLocationChange`). With that, note that
+     * `browserUrlTree` _may not_ reflect the actual browser URL for two reasons:
+     *
+     * 1. `UrlHandlingStrategy` only handles part of the URL
+     * 2. `skipLocationChange` does not update the browser url.
+     *
+     * So to reiterate, `browserUrlTree` only represents the Router's internal understanding of the
+     * current route, either before guards with `urlUpdateStrategy === 'eager'` or right before
+     * activation with `'deferred'`.
+     *
+     * This should match the `currentUrlTree` when the navigation succeeds.
+     */
+    private browserUrlTree;
+    private readonly transitions;
+    private navigations;
+    private lastSuccessfulNavigation;
+    private currentNavigation;
+    private disposed;
+    private locationSubscription?;
+    private navigationId;
+    /**
+     * The id of the currently active page in the router.
+     * Updated to the transition's target id on a successful navigation.
+     *
+     * This is used to track what page the router last activated. When an attempted navigation fails,
+     * the router can then use this to compute how to restore the state back to the previously active
+     * page.
+     */
+    private currentPageId;
+    /**
+     * The ɵrouterPageId of whatever page is currently active in the browser history. This is
+     * important for computing the target page id for new navigations because we need to ensure each
+     * page id in the browser history is 1 more than the previous entry.
+     */
+    private get browserPageId();
+    private configLoader;
+    private ngModule;
+    private console;
+    private isNgZoneEnabled;
+    /**
+     * An event stream for routing events in this NgModule.
+     */
+    readonly events: Observable<Event_2>;
+    /**
+     * The current state of routing in this NgModule.
+     */
+    readonly routerState: RouterState;
+    /**
+     * A handler for navigation errors in this NgModule.
+     */
+    errorHandler: ErrorHandler;
+    /**
+     * A handler for errors thrown by `Router.parseUrl(url)`
+     * when `url` contains an invalid character.
+     * The most common case is a `%` sign
+     * that's not encoded and is not part of a percent encoded sequence.
+     */
+    malformedUriErrorHandler: (error: URIError, urlSerializer: UrlSerializer, url: string) => UrlTree;
+    /**
+     * True if at least one navigation event has occurred,
+     * false otherwise.
+     */
+    navigated: boolean;
+    private lastSuccessfulId;
+    /**
+     * A strategy for extracting and merging URLs.
+     * Used for AngularJS to Angular migrations.
+     */
+    urlHandlingStrategy: UrlHandlingStrategy;
+    /**
+     * A strategy for re-using routes.
+     */
+    routeReuseStrategy: RouteReuseStrategy;
+    /**
+     * A strategy for setting the title based on the `routerState`.
+     */
+    titleStrategy?: TitleStrategy;
+    /**
+     * How to handle a navigation request to the current URL. One of:
+     *
+     * - `'ignore'` :  The router ignores the request.
+     * - `'reload'` : The router reloads the URL. Use to implement a "refresh" feature.
+     *
+     * Note that this only configures whether the Route reprocesses the URL and triggers related
+     * action and events like redirects, guards, and resolvers. By default, the router re-uses a
+     * component instance when it re-navigates to the same component type without visiting a different
+     * component first. This behavior is configured by the `RouteReuseStrategy`. In order to reload
+     * routed components on same url navigation, you need to set `onSameUrlNavigation` to `'reload'`
+     * _and_ provide a `RouteReuseStrategy` which returns `false` for `shouldReuseRoute`.
+     */
+    onSameUrlNavigation: 'reload' | 'ignore';
+    /**
+     * How to merge parameters, data, resolved data, and title from parent to child
+     * routes. One of:
+     *
+     * - `'emptyOnly'` : Inherit parent parameters, data, and resolved data
+     * for path-less or component-less routes.
+     * - `'always'` : Inherit parent parameters, data, and resolved data
+     * for all child routes.
+     */
+    paramsInheritanceStrategy: 'emptyOnly' | 'always';
+    /**
+     * Determines when the router updates the browser URL.
+     * By default (`"deferred"`), updates the browser URL after navigation has finished.
+     * Set to `'eager'` to update the browser URL at the beginning of navigation.
+     * You can choose to update early so that, if navigation fails,
+     * you can show an error message with the URL that failed.
+     */
+    urlUpdateStrategy: 'deferred' | 'eager';
+    /**
+     * Enables a bug fix that corrects relative link resolution in components with empty paths.
+     * @see `RouterModule`
+     *
+     * @deprecated
+     */
+    relativeLinkResolution: 'legacy' | 'corrected';
+    /**
+     * Configures how the Router attempts to restore state when a navigation is cancelled.
+     *
+     * 'replace' - Always uses `location.replaceState` to set the browser state to the state of the
+     * router before the navigation started. This means that if the URL of the browser is updated
+     * _before_ the navigation is canceled, the Router will simply replace the item in history rather
+     * than trying to restore to the previous location in the session history. This happens most
+     * frequently with `urlUpdateStrategy: 'eager'` and navigations with the browser back/forward
+     * buttons.
+     *
+     * 'computed' - Will attempt to return to the same index in the session history that corresponds
+     * to the Angular route when the navigation gets cancelled. For example, if the browser back
+     * button is clicked and the navigation is cancelled, the Router will trigger a forward navigation
+     * and vice versa.
+     *
+     * Note: the 'computed' option is incompatible with any `UrlHandlingStrategy` which only
+     * handles a portion of the URL because the history restoration navigates to the previous place in
+     * the browser history rather than simply resetting a portion of the URL.
+     *
+     * The default value is `replace`.
+     *
+     */
+    canceledNavigationResolution: 'replace' | 'computed';
+    /**
+     * Creates the router service.
+     */
+    constructor(rootComponentType: Type<any> | null, urlSerializer: UrlSerializer, rootContexts: ChildrenOutletContexts, location: Location_2, injector: Injector, compiler: Compiler, config: Routes);
+    private setupNavigations;
+    private setTransition;
+    /**
+     * Sets up the location change listener and performs the initial navigation.
+     */
+    initialNavigation(): void;
+    /**
+     * Sets up the location change listener. This listener detects navigations triggered from outside
+     * the Router (the browser back/forward buttons, for example) and schedules a corresponding Router
+     * navigation so that the correct events, guards, etc. are triggered.
+     */
+    setUpLocationChangeListener(): void;
+    /** The current URL. */
+    get url(): string;
+    /**
+     * Returns the current `Navigation` object when the router is navigating,
+     * and `null` when idle.
+     */
+    getCurrentNavigation(): Navigation | null;
+    /**
+     * Resets the route configuration used for navigation and generating links.
+     *
+     * @param config The route array for the new configuration.
+     *
+     * @usageNotes
      *
      * ```
-     * new HttpParams({fromString: 'angular=awesome'})
+     * router.resetConfig([
+     *  { path: 'team/:id', component: TeamCmp, children: [
+     *    { path: 'simple', component: SimpleCmp },
+     *    { path: 'user/:name', component: UserCmp }
+     *  ]}
+     * ]);
      * ```
      */
-    readonly params: HttpParams;
+    resetConfig(config: Routes): void;
+    /** @nodoc */
+    ngOnDestroy(): void;
+    /** Disposes of the router. */
+    dispose(): void;
     /**
-     * The outgoing URL with all URL parameters set.
-     */
-    readonly urlWithParams: string;
-    constructor(method: 'DELETE' | 'GET' | 'HEAD' | 'JSONP' | 'OPTIONS', url: string, init?: {
-        headers?: HttpHeaders;
-        context?: HttpContext;
-        reportProgress?: boolean;
-        params?: HttpParams;
-        responseType?: 'arraybuffer' | 'blob' | 'json' | 'text';
-        withCredentials?: boolean;
-    });
-    constructor(method: 'POST' | 'PUT' | 'PATCH', url: string, body: T | null, init?: {
-        headers?: HttpHeaders;
-        context?: HttpContext;
-        reportProgress?: boolean;
-        params?: HttpParams;
-        responseType?: 'arraybuffer' | 'blob' | 'json' | 'text';
-        withCredentials?: boolean;
-    });
-    constructor(method: string, url: string, body: T | null, init?: {
-        headers?: HttpHeaders;
-        context?: HttpContext;
-        reportProgress?: boolean;
-        params?: HttpParams;
-        responseType?: 'arraybuffer' | 'blob' | 'json' | 'text';
-        withCredentials?: boolean;
-    });
-    /**
-     * Transform the free-form body into a serialized format suitable for
-     * transmission to the server.
-     */
-    serializeBody(): ArrayBuffer | Blob | FormData | string | null;
-    /**
-     * Examine the body and attempt to infer an appropriate MIME type
-     * for it.
+     * Appends URL segments to the current URL tree to create a new URL tree.
      *
-     * If no such type can be inferred, this method will return `null`.
-     */
-    detectContentTypeHeader(): string | null;
-    clone(): HttpRequest<T>;
-    clone(update: {
-        headers?: HttpHeaders;
-        context?: HttpContext;
-        reportProgress?: boolean;
-        params?: HttpParams;
-        responseType?: 'arraybuffer' | 'blob' | 'json' | 'text';
-        withCredentials?: boolean;
-        body?: T | null;
-        method?: string;
-        url?: string;
-        setHeaders?: {
-            [name: string]: string | string[];
-        };
-        setParams?: {
-            [param: string]: string;
-        };
-    }): HttpRequest<T>;
-    clone<V>(update: {
-        headers?: HttpHeaders;
-        context?: HttpContext;
-        reportProgress?: boolean;
-        params?: HttpParams;
-        responseType?: 'arraybuffer' | 'blob' | 'json' | 'text';
-        withCredentials?: boolean;
-        body?: V | null;
-        method?: string;
-        url?: string;
-        setHeaders?: {
-            [name: string]: string | string[];
-        };
-        setParams?: {
-            [param: string]: string;
-        };
-    }): HttpRequest<V>;
-}
-
-/**
- * A full HTTP response, including a typed response body (which may be `null`
- * if one was not returned).
- *
- * `HttpResponse` is a `HttpEvent` available on the response event
- * stream.
- *
- * @publicApi
- */
-export declare class HttpResponse<T> extends HttpResponseBase {
-    /**
-     * The response body, or `null` if one was not returned.
-     */
-    readonly body: T | null;
-    /**
-     * Construct a new `HttpResponse`.
-     */
-    constructor(init?: {
-        body?: T | null;
-        headers?: HttpHeaders;
-        status?: number;
-        statusText?: string;
-        url?: string;
-    });
-    readonly type: HttpEventType.Response;
-    clone(): HttpResponse<T>;
-    clone(update: {
-        headers?: HttpHeaders;
-        status?: number;
-        statusText?: string;
-        url?: string;
-    }): HttpResponse<T>;
-    clone<V>(update: {
-        body?: V | null;
-        headers?: HttpHeaders;
-        status?: number;
-        statusText?: string;
-        url?: string;
-    }): HttpResponse<V>;
-}
-
-/**
- * Base class for both `HttpResponse` and `HttpHeaderResponse`.
- *
- * @publicApi
- */
-export declare abstract class HttpResponseBase {
-    /**
-     * All response headers.
-     */
-    readonly headers: HttpHeaders;
-    /**
-     * Response status code.
-     */
-    readonly status: number;
-    /**
-     * Textual description of response status code, defaults to OK.
+     * @param commands An array of URL fragments with which to construct the new URL tree.
+     * If the path is static, can be the literal URL string. For a dynamic path, pass an array of path
+     * segments, followed by the parameters for each segment.
+     * The fragments are applied to the current URL tree or the one provided  in the `relativeTo`
+     * property of the options object, if supplied.
+     * @param navigationExtras Options that control the navigation strategy.
+     * @returns The new URL tree.
      *
-     * Do not depend on this.
-     */
-    readonly statusText: string;
-    /**
-     * URL of the resource retrieved, or null if not available.
-     */
-    readonly url: string | null;
-    /**
-     * Whether the status code falls in the 2xx range.
-     */
-    readonly ok: boolean;
-    /**
-     * Type of the response, narrowed to either the full response or the header.
-     */
-    readonly type: HttpEventType.Response | HttpEventType.ResponseHeader;
-    /**
-     * Super-constructor for all responses.
+     * @usageNotes
      *
-     * The single parameter accepted is an initialization hash. Any properties
-     * of the response passed there will override the default values.
-     */
-    constructor(init: {
-        headers?: HttpHeaders;
-        status?: number;
-        statusText?: string;
-        url?: string;
-    }, defaultStatus?: number, defaultStatusText?: string);
-}
-
-/**
- * An event indicating that the request was sent to the server. Useful
- * when a request may be retried multiple times, to distinguish between
- * retries on the final event stream.
- *
- * @publicApi
- */
-export declare interface HttpSentEvent {
-    type: HttpEventType.Sent;
-}
-
-/**
- * Http status codes.
- * As per https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
- * @publicApi
- */
-export declare const enum HttpStatusCode {
-    Continue = 100,
-    SwitchingProtocols = 101,
-    Processing = 102,
-    EarlyHints = 103,
-    Ok = 200,
-    Created = 201,
-    Accepted = 202,
-    NonAuthoritativeInformation = 203,
-    NoContent = 204,
-    ResetContent = 205,
-    PartialContent = 206,
-    MultiStatus = 207,
-    AlreadyReported = 208,
-    ImUsed = 226,
-    MultipleChoices = 300,
-    MovedPermanently = 301,
-    Found = 302,
-    SeeOther = 303,
-    NotModified = 304,
-    UseProxy = 305,
-    Unused = 306,
-    TemporaryRedirect = 307,
-    PermanentRedirect = 308,
-    BadRequest = 400,
-    Unauthorized = 401,
-    PaymentRequired = 402,
-    Forbidden = 403,
-    NotFound = 404,
-    MethodNotAllowed = 405,
-    NotAcceptable = 406,
-    ProxyAuthenticationRequired = 407,
-    RequestTimeout = 408,
-    Conflict = 409,
-    Gone = 410,
-    LengthRequired = 411,
-    PreconditionFailed = 412,
-    PayloadTooLarge = 413,
-    UriTooLong = 414,
-    UnsupportedMediaType = 415,
-    RangeNotSatisfiable = 416,
-    ExpectationFailed = 417,
-    ImATeapot = 418,
-    MisdirectedRequest = 421,
-    UnprocessableEntity = 422,
-    Locked = 423,
-    FailedDependency = 424,
-    TooEarly = 425,
-    UpgradeRequired = 426,
-    PreconditionRequired = 428,
-    TooManyRequests = 429,
-    RequestHeaderFieldsTooLarge = 431,
-    UnavailableForLegalReasons = 451,
-    InternalServerError = 500,
-    NotImplemented = 501,
-    BadGateway = 502,
-    ServiceUnavailable = 503,
-    GatewayTimeout = 504,
-    HttpVersionNotSupported = 505,
-    VariantAlsoNegotiates = 506,
-    InsufficientStorage = 507,
-    LoopDetected = 508,
-    NotExtended = 510,
-    NetworkAuthenticationRequired = 511
-}
-
-/**
- * An upload progress event.
- *
- * @publicApi
- */
-export declare interface HttpUploadProgressEvent extends HttpProgressEvent {
-    type: HttpEventType.UploadProgress;
-}
-
-/**
- * Provides encoding and decoding of URL parameter and query-string values.
- *
- * Serializes and parses URL parameter keys and values to encode and decode them.
- * If you pass URL query parameters without encoding,
- * the query parameters can be misinterpreted at the receiving end.
- *
- *
- * @publicApi
- */
-export declare class HttpUrlEncodingCodec implements HttpParameterCodec {
-    /**
-     * Encodes a key name for a URL parameter or query-string.
-     * @param key The key name.
-     * @returns The encoded key name.
-     */
-    encodeKey(key: string): string;
-    /**
-     * Encodes the value of a URL parameter or query-string.
-     * @param value The value.
-     * @returns The encoded value.
-     */
-    encodeValue(value: string): string;
-    /**
-     * Decodes an encoded URL parameter or query-string key.
-     * @param key The encoded key name.
-     * @returns The decoded key name.
-     */
-    decodeKey(key: string): string;
-    /**
-     * Decodes an encoded URL parameter or query-string value.
-     * @param value The encoded value.
-     * @returns The decoded value.
-     */
-    decodeValue(value: string): string;
-}
-
-/**
- * A user-defined event.
- *
- * Grouping all custom events under this type ensures they will be handled
- * and forwarded by all implementations of interceptors.
- *
- * @publicApi
- */
-export declare interface HttpUserEvent<T> {
-    type: HttpEventType.User;
-}
-
-/**
- * Uses `XMLHttpRequest` to send requests to a backend server.
- * @see `HttpHandler`
- * @see `JsonpClientBackend`
- *
- * @publicApi
- */
-export declare class HttpXhrBackend implements HttpBackend {
-    private xhrFactory;
-    constructor(xhrFactory: XhrFactory_2);
-    /**
-     * Processes a request and returns a stream of response events.
-     * @param req The request object.
-     * @returns An observable of the response events.
-     */
-    handle(req: HttpRequest<any>): Observable<HttpEvent<any>>;
-    static ɵfac: i0.ɵɵFactoryDeclaration<HttpXhrBackend, never>;
-    static ɵprov: i0.ɵɵInjectableDeclaration<HttpXhrBackend>;
-}
-
-/**
- * Retrieves the current XSRF token to use with the next outgoing request.
- *
- * @publicApi
- */
-export declare abstract class HttpXsrfTokenExtractor {
-    /**
-     * Get the XSRF token to use with an outgoing request.
+     * ```
+     * // create /team/33/user/11
+     * router.createUrlTree(['/team', 33, 'user', 11]);
      *
-     * Will be called for every request, so the token may change between requests.
+     * // create /team/33;expand=true/user/11
+     * router.createUrlTree(['/team', 33, {expand: true}, 'user', 11]);
+     *
+     * // you can collapse static segments like this (this works only with the first passed-in value):
+     * router.createUrlTree(['/team/33/user', userId]);
+     *
+     * // If the first segment can contain slashes, and you do not want the router to split it,
+     * // you can do the following:
+     * router.createUrlTree([{segmentPath: '/one/two'}]);
+     *
+     * // create /team/33/(user/11//right:chat)
+     * router.createUrlTree(['/team', 33, {outlets: {primary: 'user/11', right: 'chat'}}]);
+     *
+     * // remove the right secondary node
+     * router.createUrlTree(['/team', 33, {outlets: {primary: 'user/11', right: null}}]);
+     *
+     * // assuming the current url is `/team/33/user/11` and the route points to `user/11`
+     *
+     * // navigate to /team/33/user/11/details
+     * router.createUrlTree(['details'], {relativeTo: route});
+     *
+     * // navigate to /team/33/user/22
+     * router.createUrlTree(['../22'], {relativeTo: route});
+     *
+     * // navigate to /team/44/user/22
+     * router.createUrlTree(['../../team/44/user/22'], {relativeTo: route});
+     *
+     * Note that a value of `null` or `undefined` for `relativeTo` indicates that the
+     * tree should be created relative to the root.
+     * ```
      */
-    abstract getToken(): string | null;
-}
-
-/**
- * DI token/abstract type representing a map of JSONP callbacks.
- *
- * In the browser, this should always be the `window` object.
- *
- *
- */
-declare abstract class JsonpCallbackContext {
-    [key: string]: (data: any) => void;
-}
-
-/**
- * Processes an `HttpRequest` with the JSONP method,
- * by performing JSONP style requests.
- * @see `HttpHandler`
- * @see `HttpXhrBackend`
- *
- * @publicApi
- */
-export declare class JsonpClientBackend implements HttpBackend {
-    private callbackMap;
-    private document;
+    createUrlTree(commands: any[], navigationExtras?: UrlCreationOptions): UrlTree;
     /**
-     * A resolved promise that can be used to schedule microtasks in the event handlers.
-     */
-    private readonly resolvedPromise;
-    constructor(callbackMap: JsonpCallbackContext, document: any);
-    /**
-     * Get the name of the next callback method, by incrementing the global `nextRequestId`.
-     */
-    private nextCallback;
-    /**
-     * Processes a JSONP request and returns an event stream of the results.
-     * @param req The request object.
-     * @returns An observable of the response events.
+     * Navigates to a view using an absolute route path.
+     *
+     * @param url An absolute path for a defined route. The function does not apply any delta to the
+     *     current URL.
+     * @param extras An object containing properties that modify the navigation strategy.
+     *
+     * @returns A Promise that resolves to 'true' when navigation succeeds,
+     * to 'false' when navigation fails, or is rejected on error.
+     *
+     * @usageNotes
+     *
+     * The following calls request navigation to an absolute path.
+     *
+     * ```
+     * router.navigateByUrl("/team/33/user/11");
+     *
+     * // Navigate without updating the URL
+     * router.navigateByUrl("/team/33/user/11", { skipLocationChange: true });
+     * ```
+     *
+     * @see [Routing and Navigation guide](guide/router)
      *
      */
-    handle(req: HttpRequest<never>): Observable<HttpEvent<any>>;
-    private removeListeners;
-    static ɵfac: i0.ɵɵFactoryDeclaration<JsonpClientBackend, never>;
-    static ɵprov: i0.ɵɵInjectableDeclaration<JsonpClientBackend>;
-}
-
-/**
- * Identifies requests with the method JSONP and
- * shifts them to the `JsonpClientBackend`.
- *
- * @see `HttpInterceptor`
- *
- * @publicApi
- */
-export declare class JsonpInterceptor {
-    private jsonp;
-    constructor(jsonp: JsonpClientBackend);
+    navigateByUrl(url: string | UrlTree, extras?: NavigationBehaviorOptions): Promise<boolean>;
     /**
-     * Identifies and handles a given JSONP request.
-     * @param req The outgoing request object to handle.
-     * @param next The next interceptor in the chain, or the backend
-     * if no interceptors remain in the chain.
-     * @returns An observable of the event stream.
+     * Navigate based on the provided array of commands and a starting point.
+     * If no starting route is provided, the navigation is absolute.
+     *
+     * @param commands An array of URL fragments with which to construct the target URL.
+     * If the path is static, can be the literal URL string. For a dynamic path, pass an array of path
+     * segments, followed by the parameters for each segment.
+     * The fragments are applied to the current URL or the one provided  in the `relativeTo` property
+     * of the options object, if supplied.
+     * @param extras An options object that determines how the URL should be constructed or
+     *     interpreted.
+     *
+     * @returns A Promise that resolves to `true` when navigation succeeds, to `false` when navigation
+     *     fails,
+     * or is rejected on error.
+     *
+     * @usageNotes
+     *
+     * The following calls request navigation to a dynamic route path relative to the current URL.
+     *
+     * ```
+     * router.navigate(['team', 33, 'user', 11], {relativeTo: route});
+     *
+     * // Navigate without updating the URL, overriding the default behavior
+     * router.navigate(['team', 33, 'user', 11], {relativeTo: route, skipLocationChange: true});
+     * ```
+     *
+     * @see [Routing and Navigation guide](guide/router)
+     *
      */
-    intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>>;
-    static ɵfac: i0.ɵɵFactoryDeclaration<JsonpInterceptor, never>;
-    static ɵprov: i0.ɵɵInjectableDeclaration<JsonpInterceptor>;
+    navigate(commands: any[], extras?: NavigationExtras): Promise<boolean>;
+    /** Serializes a `UrlTree` into a string */
+    serializeUrl(url: UrlTree): string;
+    /** Parses a string into a `UrlTree` */
+    parseUrl(url: string): UrlTree;
+    /**
+     * Returns whether the url is activated.
+     *
+     * @deprecated
+     * Use `IsActiveMatchOptions` instead.
+     *
+     * - The equivalent `IsActiveMatchOptions` for `true` is
+     * `{paths: 'exact', queryParams: 'exact', fragment: 'ignored', matrixParams: 'ignored'}`.
+     * - The equivalent for `false` is
+     * `{paths: 'subset', queryParams: 'subset', fragment: 'ignored', matrixParams: 'ignored'}`.
+     */
+    isActive(url: string | UrlTree, exact: boolean): boolean;
+    /**
+     * Returns whether the url is activated.
+     */
+    isActive(url: string | UrlTree, matchOptions: IsActiveMatchOptions): boolean;
+    private removeEmptyProps;
+    private processNavigations;
+    private scheduleNavigation;
+    private setBrowserUrl;
+    /**
+     * Performs the necessary rollback action to restore the browser URL to the
+     * state before the transition.
+     */
+    private restoreHistory;
+    private resetState;
+    private resetUrlToCurrentUrlTree;
+    private cancelNavigationTransition;
+    private generateNgRouterState;
+    static ɵfac: i0.ɵɵFactoryDeclaration<Router, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<Router>;
 }
 
 /**
- * A wrapper around the `XMLHttpRequest` constructor.
+ * A [DI token](guide/glossary/#di-token) for the router service.
  *
  * @publicApi
- * @see `XhrFactory`
- * @deprecated
- * `XhrFactory` has moved, please import `XhrFactory` from `@angular/common` instead.
  */
-export declare type XhrFactory = XhrFactory_2;
+export declare const ROUTER_CONFIGURATION: InjectionToken<ExtraOptions>;
 
 /**
- * A wrapper around the `XMLHttpRequest` constructor.
+ * A [DI token](guide/glossary/#di-token) for the router initializer that
+ * is called after the app is bootstrapped.
  *
  * @publicApi
- * @see `XhrFactory`
- * @deprecated
- * `XhrFactory` has moved, please import `XhrFactory` from `@angular/common` instead.
  */
-export declare const XhrFactory: typeof XhrFactory_2;
+export declare const ROUTER_INITIALIZER: InjectionToken<(compRef: ComponentRef<any>) => void>;
 
-/**
- * An injectable `HttpHandler` that applies multiple interceptors
- * to a request before passing it to the given `HttpBackend`.
- *
- * The interceptors are loaded lazily from the injector, to allow
- * interceptors to themselves inject classes depending indirectly
- * on `HttpInterceptingHandler` itself.
- * @see `HttpInterceptor`
- */
-export declare class ɵHttpInterceptingHandler implements HttpHandler {
-    private backend;
+declare class RouterConfigLoader {
     private injector;
-    private chain;
-    constructor(backend: HttpBackend, injector: Injector);
-    handle(req: HttpRequest<any>): Observable<HttpEvent<any>>;
-    static ɵfac: i0.ɵɵFactoryDeclaration<ɵHttpInterceptingHandler, never>;
-    static ɵprov: i0.ɵɵInjectableDeclaration<ɵHttpInterceptingHandler>;
+    private compiler;
+    private componentLoaders;
+    private childrenLoaders;
+    onLoadStartListener?: (r: Route) => void;
+    onLoadEndListener?: (r: Route) => void;
+    constructor(injector: Injector, compiler: Compiler);
+    loadComponent(route: Route): Observable<Type<unknown>>;
+    loadChildren(parentInjector: Injector, route: Route): Observable<LoadedRouterConfig>;
+    private loadModuleFactoryOrRoutes;
+    static ɵfac: i0.ɵɵFactoryDeclaration<RouterConfigLoader, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<RouterConfigLoader>;
 }
+
+/**
+ * Extra configuration options that can be used with the `withRouterConfig` function.
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare interface RouterConfigOptions {
+    /**
+     * Configures how the Router attempts to restore state when a navigation is cancelled.
+     *
+     * 'replace' - Always uses `location.replaceState` to set the browser state to the state of the
+     * router before the navigation started. This means that if the URL of the browser is updated
+     * _before_ the navigation is canceled, the Router will simply replace the item in history rather
+     * than trying to restore to the previous location in the session history. This happens most
+     * frequently with `urlUpdateStrategy: 'eager'` and navigations with the browser back/forward
+     * buttons.
+     *
+     * 'computed' - Will attempt to return to the same index in the session history that corresponds
+     * to the Angular route when the navigation gets cancelled. For example, if the browser back
+     * button is clicked and the navigation is cancelled, the Router will trigger a forward navigation
+     * and vice versa.
+     *
+     * Note: the 'computed' option is incompatible with any `UrlHandlingStrategy` which only
+     * handles a portion of the URL because the history restoration navigates to the previous place in
+     * the browser history rather than simply resetting a portion of the URL.
+     *
+     * The default value is `replace` when not set.
+     */
+    canceledNavigationResolution?: 'replace' | 'computed';
+    /**
+     * Define what the router should do if it receives a navigation request to the current URL.
+     * Default is `ignore`, which causes the router ignores the navigation.
+     * This can disable features such as a "refresh" button.
+     * Use this option to configure the behavior when navigating to the
+     * current URL. Default is 'ignore'.
+     */
+    onSameUrlNavigation?: 'reload' | 'ignore';
+    /**
+     * Defines how the router merges parameters, data, and resolved data from parent to child
+     * routes. By default ('emptyOnly'), inherits parent parameters only for
+     * path-less or component-less routes.
+     *
+     * Set to 'always' to enable unconditional inheritance of parent parameters.
+     *
+     * Note that when dealing with matrix parameters, "parent" refers to the parent `Route`
+     * config which does not necessarily mean the "URL segment to the left". When the `Route` `path`
+     * contains multiple segments, the matrix parameters must appear on the last segment. For example,
+     * matrix parameters for `{path: 'a/b', component: MyComp}` should appear as `a/b;foo=bar` and not
+     * `a;foo=bar/b`.
+     *
+     */
+    paramsInheritanceStrategy?: 'emptyOnly' | 'always';
+    /**
+     * Defines when the router updates the browser URL. By default ('deferred'),
+     * update after successful navigation.
+     * Set to 'eager' if prefer to update the URL at the beginning of navigation.
+     * Updating the URL early allows you to handle a failure of navigation by
+     * showing an error message with the URL that failed.
+     */
+    urlUpdateStrategy?: 'deferred' | 'eager';
+}
+
+/**
+ * A type alias for providers returned by `withRouterConfig` for use with `provideRouter`.
+ *
+ * @see `withRouterConfig`
+ * @see `provideRouter`
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare type RouterConfigurationFeature = RouterFeature<RouterFeatureKind.RouterConfigurationFeature>;
+
+/**
+ * @description
+ *
+ * Provides a way to customize when activated routes get reused.
+ *
+ * @publicApi
+ */
+export declare abstract class RouteReuseStrategy {
+    /** Determines if this route (and its subtree) should be detached to be reused later */
+    abstract shouldDetach(route: ActivatedRouteSnapshot): boolean;
+    /**
+     * Stores the detached route.
+     *
+     * Storing a `null` value should erase the previously stored value.
+     */
+    abstract store(route: ActivatedRouteSnapshot, handle: DetachedRouteHandle | null): void;
+    /** Determines if this route (and its subtree) should be reattached */
+    abstract shouldAttach(route: ActivatedRouteSnapshot): boolean;
+    /** Retrieves the previously stored route */
+    abstract retrieve(route: ActivatedRouteSnapshot): DetachedRouteHandle | null;
+    /** Determines if a route should be reused */
+    abstract shouldReuseRoute(future: ActivatedRouteSnapshot, curr: ActivatedRouteSnapshot): boolean;
+}
+
+/**
+ * Base for events the router goes through, as opposed to events tied to a specific
+ * route. Fired one time for any given navigation.
+ *
+ * The following code shows how a class subscribes to router events.
+ *
+ * ```ts
+ * import {Event, RouterEvent, Router} from '@angular/router';
+ *
+ * class MyService {
+ *   constructor(public router: Router) {
+ *     router.events.pipe(
+ *        filter((e: Event): e is RouterEvent => e instanceof RouterEvent)
+ *     ).subscribe((e: RouterEvent) => {
+ *       // Do something
+ *     });
+ *   }
+ * }
+ * ```
+ *
+ * @see `Event`
+ * @see [Router events summary](guide/router-reference#router-events)
+ * @publicApi
+ */
+export declare class RouterEvent {
+    /** A unique ID that the router assigns to every router navigation. */
+    id: number;
+    /** The URL that is the destination for this navigation. */
+    url: string;
+    constructor(
+    /** A unique ID that the router assigns to every router navigation. */
+    id: number, 
+    /** The URL that is the destination for this navigation. */
+    url: string);
+}
+
+/**
+ * Helper type to represent a Router feature.
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare interface RouterFeature<FeatureKind extends RouterFeatureKind> {
+    ɵkind: FeatureKind;
+    ɵproviders: Provider[];
+}
+
+/**
+ * The list of features as an enum to uniquely type each feature.
+ */
+declare const enum RouterFeatureKind {
+    PreloadingFeature = 0,
+    DebugTracingFeature = 1,
+    EnabledBlockingInitialNavigationFeature = 2,
+    DisabledInitialNavigationFeature = 3,
+    InMemoryScrollingFeature = 4,
+    RouterConfigurationFeature = 5
+}
+
+/**
+ * A type alias that represents all Router features available for use with `provideRouter`.
+ * Features can be enabled by adding special functions to the `provideRouter` call.
+ * See documentation for each symbol to find corresponding function name. See also `provideRouter`
+ * documentation on how to use those functions.
+ *
+ * @see `provideRouter`
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare type RouterFeatures = PreloadingFeature | DebugTracingFeature | InitialNavigationFeature | InMemoryScrollingFeature | RouterConfigurationFeature;
+
+/**
+ * @description
+ *
+ * When applied to an element in a template, makes that element a link
+ * that initiates navigation to a route. Navigation opens one or more routed components
+ * in one or more `<router-outlet>` locations on the page.
+ *
+ * Given a route configuration `[{ path: 'user/:name', component: UserCmp }]`,
+ * the following creates a static link to the route:
+ * `<a routerLink="/user/bob">link to user component</a>`
+ *
+ * You can use dynamic values to generate the link.
+ * For a dynamic link, pass an array of path segments,
+ * followed by the params for each segment.
+ * For example, `['/team', teamId, 'user', userName, {details: true}]`
+ * generates a link to `/team/11/user/bob;details=true`.
+ *
+ * Multiple static segments can be merged into one term and combined with dynamic segments.
+ * For example, `['/team/11/user', userName, {details: true}]`
+ *
+ * The input that you provide to the link is treated as a delta to the current URL.
+ * For instance, suppose the current URL is `/user/(box//aux:team)`.
+ * The link `<a [routerLink]="['/user/jim']">Jim</a>` creates the URL
+ * `/user/(jim//aux:team)`.
+ * See {@link Router#createUrlTree createUrlTree} for more information.
+ *
+ * @usageNotes
+ *
+ * You can use absolute or relative paths in a link, set query parameters,
+ * control how parameters are handled, and keep a history of navigation states.
+ *
+ * ### Relative link paths
+ *
+ * The first segment name can be prepended with `/`, `./`, or `../`.
+ * * If the first segment begins with `/`, the router looks up the route from the root of the
+ *   app.
+ * * If the first segment begins with `./`, or doesn't begin with a slash, the router
+ *   looks in the children of the current activated route.
+ * * If the first segment begins with `../`, the router goes up one level in the route tree.
+ *
+ * ### Setting and handling query params and fragments
+ *
+ * The following link adds a query parameter and a fragment to the generated URL:
+ *
+ * ```
+ * <a [routerLink]="['/user/bob']" [queryParams]="{debug: true}" fragment="education">
+ *   link to user component
+ * </a>
+ * ```
+ * By default, the directive constructs the new URL using the given query parameters.
+ * The example generates the link: `/user/bob?debug=true#education`.
+ *
+ * You can instruct the directive to handle query parameters differently
+ * by specifying the `queryParamsHandling` option in the link.
+ * Allowed values are:
+ *
+ *  - `'merge'`: Merge the given `queryParams` into the current query params.
+ *  - `'preserve'`: Preserve the current query params.
+ *
+ * For example:
+ *
+ * ```
+ * <a [routerLink]="['/user/bob']" [queryParams]="{debug: true}" queryParamsHandling="merge">
+ *   link to user component
+ * </a>
+ * ```
+ *
+ * See {@link UrlCreationOptions.queryParamsHandling UrlCreationOptions#queryParamsHandling}.
+ *
+ * ### Preserving navigation history
+ *
+ * You can provide a `state` value to be persisted to the browser's
+ * [`History.state` property](https://developer.mozilla.org/en-US/docs/Web/API/History#Properties).
+ * For example:
+ *
+ * ```
+ * <a [routerLink]="['/user/bob']" [state]="{tracingId: 123}">
+ *   link to user component
+ * </a>
+ * ```
+ *
+ * Use {@link Router.getCurrentNavigation() Router#getCurrentNavigation} to retrieve a saved
+ * navigation-state value. For example, to capture the `tracingId` during the `NavigationStart`
+ * event:
+ *
+ * ```
+ * // Get NavigationStart events
+ * router.events.pipe(filter(e => e instanceof NavigationStart)).subscribe(e => {
+ *   const navigation = router.getCurrentNavigation();
+ *   tracingService.trace({id: navigation.extras.state.tracingId});
+ * });
+ * ```
+ *
+ * @ngModule RouterModule
+ *
+ * @publicApi
+ */
+export declare class RouterLink implements OnChanges {
+    private router;
+    private route;
+    private readonly tabIndexAttribute;
+    private readonly renderer;
+    private readonly el;
+    private _preserveFragment;
+    private _skipLocationChange;
+    private _replaceUrl;
+    /**
+     * Passed to {@link Router#createUrlTree Router#createUrlTree} as part of the
+     * `UrlCreationOptions`.
+     * @see {@link UrlCreationOptions#queryParams UrlCreationOptions#queryParams}
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    queryParams?: Params | null;
+    /**
+     * Passed to {@link Router#createUrlTree Router#createUrlTree} as part of the
+     * `UrlCreationOptions`.
+     * @see {@link UrlCreationOptions#fragment UrlCreationOptions#fragment}
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    fragment?: string;
+    /**
+     * Passed to {@link Router#createUrlTree Router#createUrlTree} as part of the
+     * `UrlCreationOptions`.
+     * @see {@link UrlCreationOptions#queryParamsHandling UrlCreationOptions#queryParamsHandling}
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    queryParamsHandling?: QueryParamsHandling | null;
+    /**
+     * Passed to {@link Router#navigateByUrl Router#navigateByUrl} as part of the
+     * `NavigationBehaviorOptions`.
+     * @see {@link NavigationBehaviorOptions#state NavigationBehaviorOptions#state}
+     * @see {@link Router#navigateByUrl Router#navigateByUrl}
+     */
+    state?: {
+        [k: string]: any;
+    };
+    /**
+     * Passed to {@link Router#createUrlTree Router#createUrlTree} as part of the
+     * `UrlCreationOptions`.
+     * Specify a value here when you do not want to use the default value
+     * for `routerLink`, which is the current activated route.
+     * Note that a value of `undefined` here will use the `routerLink` default.
+     * @see {@link UrlCreationOptions#relativeTo UrlCreationOptions#relativeTo}
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    relativeTo?: ActivatedRoute | null;
+    private commands;
+    constructor(router: Router, route: ActivatedRoute, tabIndexAttribute: string | null | undefined, renderer: Renderer2, el: ElementRef);
+    /**
+     * Passed to {@link Router#createUrlTree Router#createUrlTree} as part of the
+     * `UrlCreationOptions`.
+     * @see {@link UrlCreationOptions#preserveFragment UrlCreationOptions#preserveFragment}
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    set preserveFragment(preserveFragment: boolean | string | null | undefined);
+    get preserveFragment(): boolean;
+    /**
+     * Passed to {@link Router#navigateByUrl Router#navigateByUrl} as part of the
+     * `NavigationBehaviorOptions`.
+     * @see {@link NavigationBehaviorOptions#skipLocationChange NavigationBehaviorOptions#skipLocationChange}
+     * @see {@link Router#navigateByUrl Router#navigateByUrl}
+     */
+    set skipLocationChange(skipLocationChange: boolean | string | null | undefined);
+    get skipLocationChange(): boolean;
+    /**
+     * Passed to {@link Router#navigateByUrl Router#navigateByUrl} as part of the
+     * `NavigationBehaviorOptions`.
+     * @see {@link NavigationBehaviorOptions#replaceUrl NavigationBehaviorOptions#replaceUrl}
+     * @see {@link Router#navigateByUrl Router#navigateByUrl}
+     */
+    set replaceUrl(replaceUrl: boolean | string | null | undefined);
+    get replaceUrl(): boolean;
+    /**
+     * Modifies the tab index if there was not a tabindex attribute on the element during
+     * instantiation.
+     */
+    private setTabIndexIfNotOnNativeEl;
+    /** @nodoc */
+    ngOnChanges(changes: SimpleChanges): void;
+    /**
+     * Commands to pass to {@link Router#createUrlTree Router#createUrlTree}.
+     *   - **array**: commands to pass to {@link Router#createUrlTree Router#createUrlTree}.
+     *   - **string**: shorthand for array of commands with just the string, i.e. `['/route']`
+     *   - **null|undefined**: effectively disables the `routerLink`
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    set routerLink(commands: any[] | string | null | undefined);
+    /** @nodoc */
+    onClick(): boolean;
+    get urlTree(): UrlTree | null;
+    static ɵfac: i0.ɵɵFactoryDeclaration<RouterLink, [null, null, { attribute: "tabindex"; }, null, null]>;
+    static ɵdir: i0.ɵɵDirectiveDeclaration<RouterLink, ":not(a):not(area)[routerLink]", never, { "queryParams": "queryParams"; "fragment": "fragment"; "queryParamsHandling": "queryParamsHandling"; "state": "state"; "relativeTo": "relativeTo"; "preserveFragment": "preserveFragment"; "skipLocationChange": "skipLocationChange"; "replaceUrl": "replaceUrl"; "routerLink": "routerLink"; }, {}, never, never, true>;
+}
+
+/**
+ *
+ * @description
+ *
+ * Tracks whether the linked route of an element is currently active, and allows you
+ * to specify one or more CSS classes to add to the element when the linked route
+ * is active.
+ *
+ * Use this directive to create a visual distinction for elements associated with an active route.
+ * For example, the following code highlights the word "Bob" when the router
+ * activates the associated route:
+ *
+ * ```
+ * <a routerLink="/user/bob" routerLinkActive="active-link">Bob</a>
+ * ```
+ *
+ * Whenever the URL is either '/user' or '/user/bob', the "active-link" class is
+ * added to the anchor tag. If the URL changes, the class is removed.
+ *
+ * You can set more than one class using a space-separated string or an array.
+ * For example:
+ *
+ * ```
+ * <a routerLink="/user/bob" routerLinkActive="class1 class2">Bob</a>
+ * <a routerLink="/user/bob" [routerLinkActive]="['class1', 'class2']">Bob</a>
+ * ```
+ *
+ * To add the classes only when the URL matches the link exactly, add the option `exact: true`:
+ *
+ * ```
+ * <a routerLink="/user/bob" routerLinkActive="active-link" [routerLinkActiveOptions]="{exact:
+ * true}">Bob</a>
+ * ```
+ *
+ * To directly check the `isActive` status of the link, assign the `RouterLinkActive`
+ * instance to a template variable.
+ * For example, the following checks the status without assigning any CSS classes:
+ *
+ * ```
+ * <a routerLink="/user/bob" routerLinkActive #rla="routerLinkActive">
+ *   Bob {{ rla.isActive ? '(already open)' : ''}}
+ * </a>
+ * ```
+ *
+ * You can apply the `RouterLinkActive` directive to an ancestor of linked elements.
+ * For example, the following sets the active-link class on the `<div>`  parent tag
+ * when the URL is either '/user/jim' or '/user/bob'.
+ *
+ * ```
+ * <div routerLinkActive="active-link" [routerLinkActiveOptions]="{exact: true}">
+ *   <a routerLink="/user/jim">Jim</a>
+ *   <a routerLink="/user/bob">Bob</a>
+ * </div>
+ * ```
+ *
+ * The `RouterLinkActive` directive can also be used to set the aria-current attribute
+ * to provide an alternative distinction for active elements to visually impaired users.
+ *
+ * For example, the following code adds the 'active' class to the Home Page link when it is
+ * indeed active and in such case also sets its aria-current attribute to 'page':
+ *
+ * ```
+ * <a routerLink="/" routerLinkActive="active" ariaCurrentWhenActive="page">Home Page</a>
+ * ```
+ *
+ * @ngModule RouterModule
+ *
+ * @publicApi
+ */
+export declare class RouterLinkActive implements OnChanges, OnDestroy, AfterContentInit {
+    private router;
+    private element;
+    private renderer;
+    private readonly cdr;
+    private link?;
+    private linkWithHref?;
+    links: QueryList<RouterLink>;
+    linksWithHrefs: QueryList<RouterLinkWithHref>;
+    private classes;
+    private routerEventsSubscription;
+    private linkInputChangesSubscription?;
+    readonly isActive: boolean;
+    /**
+     * Options to configure how to determine if the router link is active.
+     *
+     * These options are passed to the `Router.isActive()` function.
+     *
+     * @see Router.isActive
+     */
+    routerLinkActiveOptions: {
+        exact: boolean;
+    } | IsActiveMatchOptions;
+    /**
+     * Aria-current attribute to apply when the router link is active.
+     *
+     * Possible values: `'page'` | `'step'` | `'location'` | `'date'` | `'time'` | `true` | `false`.
+     *
+     * @see {@link https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-current}
+     */
+    ariaCurrentWhenActive?: 'page' | 'step' | 'location' | 'date' | 'time' | true | false;
+    /**
+     *
+     * You can use the output `isActiveChange` to get notified each time the link becomes
+     * active or inactive.
+     *
+     * Emits:
+     * true  -> Route is active
+     * false -> Route is inactive
+     *
+     * ```
+     * <a
+     *  routerLink="/user/bob"
+     *  routerLinkActive="active-link"
+     *  (isActiveChange)="this.onRouterLinkActive($event)">Bob</a>
+     * ```
+     */
+    readonly isActiveChange: EventEmitter<boolean>;
+    constructor(router: Router, element: ElementRef, renderer: Renderer2, cdr: ChangeDetectorRef, link?: RouterLink | undefined, linkWithHref?: RouterLinkWithHref | undefined);
+    /** @nodoc */
+    ngAfterContentInit(): void;
+    private subscribeToEachLinkOnChanges;
+    set routerLinkActive(data: string[] | string);
+    /** @nodoc */
+    ngOnChanges(changes: SimpleChanges): void;
+    /** @nodoc */
+    ngOnDestroy(): void;
+    private update;
+    private isLinkActive;
+    private hasActiveLinks;
+    static ɵfac: i0.ɵɵFactoryDeclaration<RouterLinkActive, [null, null, null, null, { optional: true; }, { optional: true; }]>;
+    static ɵdir: i0.ɵɵDirectiveDeclaration<RouterLinkActive, "[routerLinkActive]", ["routerLinkActive"], { "routerLinkActiveOptions": "routerLinkActiveOptions"; "ariaCurrentWhenActive": "ariaCurrentWhenActive"; "routerLinkActive": "routerLinkActive"; }, { "isActiveChange": "isActiveChange"; }, ["links", "linksWithHrefs"], never, true>;
+}
+
+/**
+ * @description
+ *
+ * Lets you link to specific routes in your app.
+ *
+ * See `RouterLink` for more information.
+ *
+ * @ngModule RouterModule
+ *
+ * @publicApi
+ */
+export declare class RouterLinkWithHref implements OnChanges, OnDestroy {
+    private router;
+    private route;
+    private locationStrategy;
+    private _preserveFragment;
+    private _skipLocationChange;
+    private _replaceUrl;
+    target: string;
+    /**
+     * Passed to {@link Router#createUrlTree Router#createUrlTree} as part of the
+     * `UrlCreationOptions`.
+     * @see {@link UrlCreationOptions#queryParams UrlCreationOptions#queryParams}
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    queryParams?: Params | null;
+    /**
+     * Passed to {@link Router#createUrlTree Router#createUrlTree} as part of the
+     * `UrlCreationOptions`.
+     * @see {@link UrlCreationOptions#fragment UrlCreationOptions#fragment}
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    fragment?: string;
+    /**
+     * Passed to {@link Router#createUrlTree Router#createUrlTree} as part of the
+     * `UrlCreationOptions`.
+     * @see {@link UrlCreationOptions#queryParamsHandling UrlCreationOptions#queryParamsHandling}
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    queryParamsHandling?: QueryParamsHandling | null;
+    /**
+     * Passed to {@link Router#navigateByUrl Router#navigateByUrl} as part of the
+     * `NavigationBehaviorOptions`.
+     * @see {@link NavigationBehaviorOptions#state NavigationBehaviorOptions#state}
+     * @see {@link Router#navigateByUrl Router#navigateByUrl}
+     */
+    state?: {
+        [k: string]: any;
+    };
+    /**
+     * Passed to {@link Router#createUrlTree Router#createUrlTree} as part of the
+     * `UrlCreationOptions`.
+     * Specify a value here when you do not want to use the default value
+     * for `routerLink`, which is the current activated route.
+     * Note that a value of `undefined` here will use the `routerLink` default.
+     * @see {@link UrlCreationOptions#relativeTo UrlCreationOptions#relativeTo}
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    relativeTo?: ActivatedRoute | null;
+    private commands;
+    private subscription;
+    href: string | null;
+    constructor(router: Router, route: ActivatedRoute, locationStrategy: LocationStrategy);
+    /**
+     * Passed to {@link Router#createUrlTree Router#createUrlTree} as part of the
+     * `UrlCreationOptions`.
+     * @see {@link UrlCreationOptions#preserveFragment UrlCreationOptions#preserveFragment}
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    set preserveFragment(preserveFragment: boolean | string | null | undefined);
+    get preserveFragment(): boolean;
+    /**
+     * Passed to {@link Router#navigateByUrl Router#navigateByUrl} as part of the
+     * `NavigationBehaviorOptions`.
+     * @see {@link NavigationBehaviorOptions#skipLocationChange NavigationBehaviorOptions#skipLocationChange}
+     * @see {@link Router#navigateByUrl Router#navigateByUrl}
+     */
+    set skipLocationChange(skipLocationChange: boolean | string | null | undefined);
+    get skipLocationChange(): boolean;
+    /**
+     * Passed to {@link Router#navigateByUrl Router#navigateByUrl} as part of the
+     * `NavigationBehaviorOptions`.
+     * @see {@link NavigationBehaviorOptions#replaceUrl NavigationBehaviorOptions#replaceUrl}
+     * @see {@link Router#navigateByUrl Router#navigateByUrl}
+     */
+    set replaceUrl(replaceUrl: boolean | string | null | undefined);
+    get replaceUrl(): boolean;
+    /**
+     * Commands to pass to {@link Router#createUrlTree Router#createUrlTree}.
+     *   - **array**: commands to pass to {@link Router#createUrlTree Router#createUrlTree}.
+     *   - **string**: shorthand for array of commands with just the string, i.e. `['/route']`
+     *   - **null|undefined**: Disables the link by removing the `href`
+     * @see {@link Router#createUrlTree Router#createUrlTree}
+     */
+    set routerLink(commands: any[] | string | null | undefined);
+    /** @nodoc */
+    ngOnChanges(changes: SimpleChanges): any;
+    /** @nodoc */
+    ngOnDestroy(): any;
+    /** @nodoc */
+    onClick(button: number, ctrlKey: boolean, shiftKey: boolean, altKey: boolean, metaKey: boolean): boolean;
+    private updateTargetUrlAndHref;
+    get urlTree(): UrlTree | null;
+    static ɵfac: i0.ɵɵFactoryDeclaration<RouterLinkWithHref, never>;
+    static ɵdir: i0.ɵɵDirectiveDeclaration<RouterLinkWithHref, "a[routerLink],area[routerLink]", never, { "target": "target"; "queryParams": "queryParams"; "fragment": "fragment"; "queryParamsHandling": "queryParamsHandling"; "state": "state"; "relativeTo": "relativeTo"; "preserveFragment": "preserveFragment"; "skipLocationChange": "skipLocationChange"; "replaceUrl": "replaceUrl"; "routerLink": "routerLink"; }, {}, never, never, true>;
+}
+
+/**
+ * @description
+ *
+ * Adds directives and providers for in-app navigation among views defined in an application.
+ * Use the Angular `Router` service to declaratively specify application states and manage state
+ * transitions.
+ *
+ * You can import this NgModule multiple times, once for each lazy-loaded bundle.
+ * However, only one `Router` service can be active.
+ * To ensure this, there are two ways to register routes when importing this module:
+ *
+ * * The `forRoot()` method creates an `NgModule` that contains all the directives, the given
+ * routes, and the `Router` service itself.
+ * * The `forChild()` method creates an `NgModule` that contains all the directives and the given
+ * routes, but does not include the `Router` service.
+ *
+ * @see [Routing and Navigation guide](guide/router) for an
+ * overview of how the `Router` service should be used.
+ *
+ * @publicApi
+ */
+export declare class RouterModule {
+    constructor(guard: any);
+    /**
+     * Creates and configures a module with all the router providers and directives.
+     * Optionally sets up an application listener to perform an initial navigation.
+     *
+     * When registering the NgModule at the root, import as follows:
+     *
+     * ```
+     * @NgModule({
+     *   imports: [RouterModule.forRoot(ROUTES)]
+     * })
+     * class MyNgModule {}
+     * ```
+     *
+     * @param routes An array of `Route` objects that define the navigation paths for the application.
+     * @param config An `ExtraOptions` configuration object that controls how navigation is performed.
+     * @return The new `NgModule`.
+     *
+     */
+    static forRoot(routes: Routes, config?: ExtraOptions): ModuleWithProviders<RouterModule>;
+    /**
+     * Creates a module with all the router directives and a provider registering routes,
+     * without creating a new Router service.
+     * When registering for submodules and lazy-loaded submodules, create the NgModule as follows:
+     *
+     * ```
+     * @NgModule({
+     *   imports: [RouterModule.forChild(ROUTES)]
+     * })
+     * class MyNgModule {}
+     * ```
+     *
+     * @param routes An array of `Route` objects that define the navigation paths for the submodule.
+     * @return The new NgModule.
+     *
+     */
+    static forChild(routes: Routes): ModuleWithProviders<RouterModule>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<RouterModule, [{ optional: true; }]>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<RouterModule, never, [typeof i1.RouterOutlet, typeof i2.RouterLink, typeof i2.RouterLinkWithHref, typeof i3.RouterLinkActive, typeof i4.ɵEmptyOutletComponent], [typeof i1.RouterOutlet, typeof i2.RouterLink, typeof i2.RouterLinkWithHref, typeof i3.RouterLinkActive, typeof i4.ɵEmptyOutletComponent]>;
+    static ɵinj: i0.ɵɵInjectorDeclaration<RouterModule>;
+}
+
+/**
+ * @description
+ *
+ * Acts as a placeholder that Angular dynamically fills based on the current router state.
+ *
+ * Each outlet can have a unique name, determined by the optional `name` attribute.
+ * The name cannot be set or changed dynamically. If not set, default value is "primary".
+ *
+ * ```
+ * <router-outlet></router-outlet>
+ * <router-outlet name='left'></router-outlet>
+ * <router-outlet name='right'></router-outlet>
+ * ```
+ *
+ * Named outlets can be the targets of secondary routes.
+ * The `Route` object for a secondary route has an `outlet` property to identify the target outlet:
+ *
+ * `{path: <base-path>, component: <component>, outlet: <target_outlet_name>}`
+ *
+ * Using named outlets and secondary routes, you can target multiple outlets in
+ * the same `RouterLink` directive.
+ *
+ * The router keeps track of separate branches in a navigation tree for each named outlet and
+ * generates a representation of that tree in the URL.
+ * The URL for a secondary route uses the following syntax to specify both the primary and secondary
+ * routes at the same time:
+ *
+ * `http://base-path/primary-route-path(outlet-name:route-path)`
+ *
+ * A router outlet emits an activate event when a new component is instantiated,
+ * deactivate event when a component is destroyed.
+ * An attached event emits when the `RouteReuseStrategy` instructs the outlet to reattach the
+ * subtree, and the detached event emits when the `RouteReuseStrategy` instructs the outlet to
+ * detach the subtree.
+ *
+ * ```
+ * <router-outlet
+ *   (activate)='onActivate($event)'
+ *   (deactivate)='onDeactivate($event)'
+ *   (attach)='onAttach($event)'
+ *   (detach)='onDetach($event)'></router-outlet>
+ * ```
+ *
+ * @see [Routing tutorial](guide/router-tutorial-toh#named-outlets "Example of a named
+ * outlet and secondary route configuration").
+ * @see `RouterLink`
+ * @see `Route`
+ * @ngModule RouterModule
+ *
+ * @publicApi
+ */
+export declare class RouterOutlet implements OnDestroy, OnInit, RouterOutletContract {
+    private parentContexts;
+    private location;
+    private changeDetector;
+    private environmentInjector;
+    private activated;
+    private _activatedRoute;
+    private name;
+    activateEvents: EventEmitter<any>;
+    deactivateEvents: EventEmitter<any>;
+    /**
+     * Emits an attached component instance when the `RouteReuseStrategy` instructs to re-attach a
+     * previously detached subtree.
+     **/
+    attachEvents: EventEmitter<unknown>;
+    /**
+     * Emits a detached component instance when the `RouteReuseStrategy` instructs to detach the
+     * subtree.
+     */
+    detachEvents: EventEmitter<unknown>;
+    constructor(parentContexts: ChildrenOutletContexts, location: ViewContainerRef, name: string, changeDetector: ChangeDetectorRef, environmentInjector: EnvironmentInjector);
+    /** @nodoc */
+    ngOnDestroy(): void;
+    /** @nodoc */
+    ngOnInit(): void;
+    get isActivated(): boolean;
+    /**
+     * @returns The currently activated component instance.
+     * @throws An error if the outlet is not activated.
+     */
+    get component(): Object;
+    get activatedRoute(): ActivatedRoute;
+    get activatedRouteData(): Data;
+    /**
+     * Called when the `RouteReuseStrategy` instructs to detach the subtree
+     */
+    detach(): ComponentRef<any>;
+    /**
+     * Called when the `RouteReuseStrategy` instructs to re-attach a previously detached subtree
+     */
+    attach(ref: ComponentRef<any>, activatedRoute: ActivatedRoute): void;
+    deactivate(): void;
+    activateWith(activatedRoute: ActivatedRoute, resolverOrInjector?: ComponentFactoryResolver | EnvironmentInjector | null): void;
+    static ɵfac: i0.ɵɵFactoryDeclaration<RouterOutlet, [null, null, { attribute: "name"; }, null, null]>;
+    static ɵdir: i0.ɵɵDirectiveDeclaration<RouterOutlet, "router-outlet", ["outlet"], {}, { "activateEvents": "activate"; "deactivateEvents": "deactivate"; "attachEvents": "attach"; "detachEvents": "detach"; }, never, never, true>;
+}
+
+/**
+ * An interface that defines the contract for developing a component outlet for the `Router`.
+ *
+ * An outlet acts as a placeholder that Angular dynamically fills based on the current router state.
+ *
+ * A router outlet should register itself with the `Router` via
+ * `ChildrenOutletContexts#onChildOutletCreated` and unregister with
+ * `ChildrenOutletContexts#onChildOutletDestroyed`. When the `Router` identifies a matched `Route`,
+ * it looks for a registered outlet in the `ChildrenOutletContexts` and activates it.
+ *
+ * @see `ChildrenOutletContexts`
+ * @publicApi
+ */
+export declare interface RouterOutletContract {
+    /**
+     * Whether the given outlet is activated.
+     *
+     * An outlet is considered "activated" if it has an active component.
+     */
+    isActivated: boolean;
+    /** The instance of the activated component or `null` if the outlet is not activated. */
+    component: Object | null;
+    /**
+     * The `Data` of the `ActivatedRoute` snapshot.
+     */
+    activatedRouteData: Data;
+    /**
+     * The `ActivatedRoute` for the outlet or `null` if the outlet is not activated.
+     */
+    activatedRoute: ActivatedRoute | null;
+    /**
+     * Called by the `Router` when the outlet should activate (create a component).
+     */
+    activateWith(activatedRoute: ActivatedRoute, environmentInjector: EnvironmentInjector | null): void;
+    /**
+     * Called by the `Router` when the outlet should activate (create a component).
+     *
+     * @deprecated Passing a resolver to retrieve a component factory is not required and is
+     *     deprecated since v14.
+     */
+    activateWith(activatedRoute: ActivatedRoute, resolver: ComponentFactoryResolver | null): void;
+    /**
+     * A request to destroy the currently activated component.
+     *
+     * When a `RouteReuseStrategy` indicates that an `ActivatedRoute` should be removed but stored for
+     * later re-use rather than destroyed, the `Router` will call `detach` instead.
+     */
+    deactivate(): void;
+    /**
+     * Called when the `RouteReuseStrategy` instructs to detach the subtree.
+     *
+     * This is similar to `deactivate`, but the activated component should _not_ be destroyed.
+     * Instead, it is returned so that it can be reattached later via the `attach` method.
+     */
+    detach(): ComponentRef<unknown>;
+    /**
+     * Called when the `RouteReuseStrategy` instructs to re-attach a previously detached subtree.
+     */
+    attach(ref: ComponentRef<unknown>, activatedRoute: ActivatedRoute): void;
+    /**
+     * Emits an activate event when a new component is instantiated
+     **/
+    activateEvents?: EventEmitter<unknown>;
+    /**
+     * Emits a deactivate event when a component is destroyed.
+     */
+    deactivateEvents?: EventEmitter<unknown>;
+    /**
+     * Emits an attached component instance when the `RouteReuseStrategy` instructs to re-attach a
+     * previously detached subtree.
+     **/
+    attachEvents?: EventEmitter<unknown>;
+    /**
+     * Emits a detached component instance when the `RouteReuseStrategy` instructs to detach the
+     * subtree.
+     */
+    detachEvents?: EventEmitter<unknown>;
+}
+
+/**
+ * The preloader optimistically loads all router configurations to
+ * make navigations into lazily-loaded sections of the application faster.
+ *
+ * The preloader runs in the background. When the router bootstraps, the preloader
+ * starts listening to all navigation events. After every such event, the preloader
+ * will check if any configurations can be loaded lazily.
+ *
+ * If a route is protected by `canLoad` guards, the preloaded will not load it.
+ *
+ * @publicApi
+ */
+export declare class RouterPreloader implements OnDestroy {
+    private router;
+    private injector;
+    private preloadingStrategy;
+    private loader;
+    private subscription?;
+    constructor(router: Router, compiler: Compiler, injector: EnvironmentInjector, preloadingStrategy: PreloadingStrategy, loader: RouterConfigLoader);
+    setUpPreloading(): void;
+    preload(): Observable<any>;
+    /** @nodoc */
+    ngOnDestroy(): void;
+    private processRoutes;
+    private preloadConfig;
+    static ɵfac: i0.ɵɵFactoryDeclaration<RouterPreloader, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<RouterPreloader>;
+}
+
+/**
+ * Represents the state of the router as a tree of activated routes.
+ *
+ * @usageNotes
+ *
+ * Every node in the route tree is an `ActivatedRoute` instance
+ * that knows about the "consumed" URL segments, the extracted parameters,
+ * and the resolved data.
+ * Use the `ActivatedRoute` properties to traverse the tree from any node.
+ *
+ * The following fragment shows how a component gets the root node
+ * of the current state to establish its own route tree:
+ *
+ * ```
+ * @Component({templateUrl:'template.html'})
+ * class MyComponent {
+ *   constructor(router: Router) {
+ *     const state: RouterState = router.routerState;
+ *     const root: ActivatedRoute = state.root;
+ *     const child = root.firstChild;
+ *     const id: Observable<string> = child.params.map(p => p.id);
+ *     //...
+ *   }
+ * }
+ * ```
+ *
+ * @see `ActivatedRoute`
+ * @see [Getting route information](guide/router#getting-route-information)
+ *
+ * @publicApi
+ */
+export declare class RouterState extends Tree<ActivatedRoute> {
+    /** The current snapshot of the router state */
+    snapshot: RouterStateSnapshot;
+    toString(): string;
+}
+
+/**
+ * @description
+ *
+ * Represents the state of the router at a moment in time.
+ *
+ * This is a tree of activated route snapshots. Every node in this tree knows about
+ * the "consumed" URL segments, the extracted parameters, and the resolved data.
+ *
+ * The following example shows how a component is initialized with information
+ * from the snapshot of the root node's state at the time of creation.
+ *
+ * ```
+ * @Component({templateUrl:'template.html'})
+ * class MyComponent {
+ *   constructor(router: Router) {
+ *     const state: RouterState = router.routerState;
+ *     const snapshot: RouterStateSnapshot = state.snapshot;
+ *     const root: ActivatedRouteSnapshot = snapshot.root;
+ *     const child = root.firstChild;
+ *     const id: Observable<string> = child.params.map(p => p.id);
+ *     //...
+ *   }
+ * }
+ * ```
+ *
+ * @publicApi
+ */
+export declare class RouterStateSnapshot extends Tree<ActivatedRouteSnapshot> {
+    /** The url from which this snapshot was created */
+    url: string;
+    toString(): string;
+}
+
+/**
+ * The [DI token](guide/glossary/#di-token) for a router configuration.
+ *
+ * `ROUTES` is a low level API for router configuration via dependency injection.
+ *
+ * We recommend that in almost all cases to use higher level APIs such as `RouterModule.forRoot()`,
+ * `RouterModule.forChild()`, `provideRoutes`, or `Router.resetConfig()`.
+ *
+ * @publicApi
+ */
+export declare const ROUTES: InjectionToken<Route[][]>;
+
+/**
+ * Represents a route configuration for the Router service.
+ * An array of `Route` objects, used in `Router.config` and for nested route configurations
+ * in `Route.children`.
+ *
+ * @see `Route`
+ * @see `Router`
+ * @see [Router configuration guide](guide/router-reference#configuration)
+ * @publicApi
+ */
+export declare type Routes = Route[];
+
+/**
+ * An event triggered when routes are recognized.
+ *
+ * @publicApi
+ */
+export declare class RoutesRecognized extends RouterEvent {
+    /** @docsNotRequired */
+    urlAfterRedirects: string;
+    /** @docsNotRequired */
+    state: RouterStateSnapshot;
+    readonly type = EventType.RoutesRecognized;
+    constructor(
+    /** @docsNotRequired */
+    id: number, 
+    /** @docsNotRequired */
+    url: string, 
+    /** @docsNotRequired */
+    urlAfterRedirects: string, 
+    /** @docsNotRequired */
+    state: RouterStateSnapshot);
+    /** @docsNotRequired */
+    toString(): string;
+}
+
+/**
+ * A policy for when to run guards and resolvers on a route.
+ *
+ * Guards and/or resolvers will always run when a route is activated or deactivated. When a route is
+ * unchanged, the default behavior is the same as `paramsChange`.
+ *
+ * `paramsChange` : Rerun the guards and resolvers when path or
+ * path param changes. This does not include query parameters. This option is the default.
+ * - `always` : Run on every execution.
+ * - `pathParamsChange` : Rerun guards and resolvers when the path params
+ * change. This does not compare matrix or query parameters.
+ * - `paramsOrQueryParamsChange` : Run when path, matrix, or query parameters change.
+ * - `pathParamsOrQueryParamsChange` : Rerun guards and resolvers when the path params
+ * change or query params have changed. This does not include matrix parameters.
+ *
+ * @see [Route.runGuardsAndResolvers](api/router/Route#runGuardsAndResolvers)
+ * @publicApi
+ */
+export declare type RunGuardsAndResolvers = 'pathParamsChange' | 'pathParamsOrQueryParamsChange' | 'paramsChange' | 'paramsOrQueryParamsChange' | 'always' | ((from: ActivatedRouteSnapshot, to: ActivatedRouteSnapshot) => boolean);
+
+/**
+ * An event triggered by scrolling.
+ *
+ * @publicApi
+ */
+export declare class Scroll {
+    /** @docsNotRequired */
+    readonly routerEvent: NavigationEnd;
+    /** @docsNotRequired */
+    readonly position: [number, number] | null;
+    /** @docsNotRequired */
+    readonly anchor: string | null;
+    readonly type = EventType.Scroll;
+    constructor(
+    /** @docsNotRequired */
+    routerEvent: NavigationEnd, 
+    /** @docsNotRequired */
+    position: [number, number] | null, 
+    /** @docsNotRequired */
+    anchor: string | null);
+    toString(): string;
+}
+
+/**
+ * Provides a strategy for setting the page title after a router navigation.
+ *
+ * The built-in implementation traverses the router state snapshot and finds the deepest primary
+ * outlet with `title` property. Given the `Routes` below, navigating to
+ * `/base/child(popup:aux)` would result in the document title being set to "child".
+ * ```
+ * [
+ *   {path: 'base', title: 'base', children: [
+ *     {path: 'child', title: 'child'},
+ *   ],
+ *   {path: 'aux', outlet: 'popup', title: 'popupTitle'}
+ * ]
+ * ```
+ *
+ * This class can be used as a base class for custom title strategies. That is, you can create your
+ * own class that extends the `TitleStrategy`. Note that in the above example, the `title`
+ * from the named outlet is never used. However, a custom strategy might be implemented to
+ * incorporate titles in named outlets.
+ *
+ * @publicApi
+ * @see [Page title guide](guide/router#setting-the-page-title)
+ */
+export declare abstract class TitleStrategy {
+    /** Performs the application title update. */
+    abstract updateTitle(snapshot: RouterStateSnapshot): void;
+    /**
+     * @returns The `title` of the deepest primary route.
+     */
+    buildTitle(snapshot: RouterStateSnapshot): string | undefined;
+    /**
+     * Given an `ActivatedRouteSnapshot`, returns the final value of the
+     * `Route.title` property, which can either be a static string or a resolved value.
+     */
+    getResolvedTitleForRoute(snapshot: ActivatedRouteSnapshot): any;
+    static ɵfac: i0.ɵɵFactoryDeclaration<TitleStrategy, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<TitleStrategy>;
+}
+
+
+declare class Tree<T> {
+    constructor(root: TreeNode<T>);
+    get root(): T;
+}
+
+declare class TreeNode<T> {
+    value: T;
+    children: TreeNode<T>[];
+    constructor(value: T, children: TreeNode<T>[]);
+    toString(): string;
+}
+
+/**
+ * @description
+ *
+ * Options that modify the `Router` URL.
+ * Supply an object containing any of these properties to a `Router` navigation function to
+ * control how the target URL should be constructed.
+ *
+ * @see [Router.navigate() method](api/router/Router#navigate)
+ * @see [Router.createUrlTree() method](api/router/Router#createurltree)
+ * @see [Routing and Navigation guide](guide/router)
+ *
+ * @publicApi
+ */
+export declare interface UrlCreationOptions {
+    /**
+     * Specifies a root URI to use for relative navigation.
+     *
+     * For example, consider the following route configuration where the parent route
+     * has two children.
+     *
+     * ```
+     * [{
+     *   path: 'parent',
+     *   component: ParentComponent,
+     *   children: [{
+     *     path: 'list',
+     *     component: ListComponent
+     *   },{
+     *     path: 'child',
+     *     component: ChildComponent
+     *   }]
+     * }]
+     * ```
+     *
+     * The following `go()` function navigates to the `list` route by
+     * interpreting the destination URI as relative to the activated `child`  route
+     *
+     * ```
+     *  @Component({...})
+     *  class ChildComponent {
+     *    constructor(private router: Router, private route: ActivatedRoute) {}
+     *
+     *    go() {
+     *      this.router.navigate(['../list'], { relativeTo: this.route });
+     *    }
+     *  }
+     * ```
+     *
+     * A value of `null` or `undefined` indicates that the navigation commands should be applied
+     * relative to the root.
+     */
+    relativeTo?: ActivatedRoute | null;
+    /**
+     * Sets query parameters to the URL.
+     *
+     * ```
+     * // Navigate to /results?page=1
+     * this.router.navigate(['/results'], { queryParams: { page: 1 } });
+     * ```
+     */
+    queryParams?: Params | null;
+    /**
+     * Sets the hash fragment for the URL.
+     *
+     * ```
+     * // Navigate to /results#top
+     * this.router.navigate(['/results'], { fragment: 'top' });
+     * ```
+     */
+    fragment?: string;
+    /**
+     * How to handle query parameters in the router link for the next navigation.
+     * One of:
+     * * `preserve` : Preserve current parameters.
+     * * `merge` : Merge new with current parameters.
+     *
+     * The "preserve" option discards any new query params:
+     * ```
+     * // from /view1?page=1 to/view2?page=1
+     * this.router.navigate(['/view2'], { queryParams: { page: 2 },  queryParamsHandling: "preserve"
+     * });
+     * ```
+     * The "merge" option appends new query params to the params from the current URL:
+     * ```
+     * // from /view1?page=1 to/view2?page=1&otherKey=2
+     * this.router.navigate(['/view2'], { queryParams: { otherKey: 2 },  queryParamsHandling: "merge"
+     * });
+     * ```
+     * In case of a key collision between current parameters and those in the `queryParams` object,
+     * the new value is used.
+     *
+     */
+    queryParamsHandling?: QueryParamsHandling | null;
+    /**
+     * When true, preserves the URL fragment for the next navigation
+     *
+     * ```
+     * // Preserve fragment from /results#top to /view#top
+     * this.router.navigate(['/view'], { preserveFragment: true });
+     * ```
+     */
+    preserveFragment?: boolean;
+}
+
+/**
+ * @description
+ *
+ * Provides a way to migrate AngularJS applications to Angular.
+ *
+ * @publicApi
+ */
+export declare abstract class UrlHandlingStrategy {
+    /**
+     * Tells the router if this URL should be processed.
+     *
+     * When it returns true, the router will execute the regular navigation.
+     * When it returns false, the router will set the router state to an empty state.
+     * As a result, all the active components will be destroyed.
+     *
+     */
+    abstract shouldProcessUrl(url: UrlTree): boolean;
+    /**
+     * Extracts the part of the URL that should be handled by the router.
+     * The rest of the URL will remain untouched.
+     */
+    abstract extract(url: UrlTree): UrlTree;
+    /**
+     * Merges the URL fragment with the rest of the URL.
+     */
+    abstract merge(newUrlPart: UrlTree, rawUrl: UrlTree): UrlTree;
+}
+
+/**
+ * A function for matching a route against URLs. Implement a custom URL matcher
+ * for `Route.matcher` when a combination of `path` and `pathMatch`
+ * is not expressive enough. Cannot be used together with `path` and `pathMatch`.
+ *
+ * The function takes the following arguments and returns a `UrlMatchResult` object.
+ * * *segments* : An array of URL segments.
+ * * *group* : A segment group.
+ * * *route* : The route to match against.
+ *
+ * The following example implementation matches HTML files.
+ *
+ * ```
+ * export function htmlFiles(url: UrlSegment[]) {
+ *   return url.length === 1 && url[0].path.endsWith('.html') ? ({consumed: url}) : null;
+ * }
+ *
+ * export const routes = [{ matcher: htmlFiles, component: AnyComponent }];
+ * ```
+ *
+ * @publicApi
+ */
+export declare type UrlMatcher = (segments: UrlSegment[], group: UrlSegmentGroup, route: Route) => UrlMatchResult | null;
+
+/**
+ * Represents the result of matching URLs with a custom matching function.
+ *
+ * * `consumed` is an array of the consumed URL segments.
+ * * `posParams` is a map of positional parameters.
+ *
+ * @see `UrlMatcher()`
+ * @publicApi
+ */
+export declare type UrlMatchResult = {
+    consumed: UrlSegment[];
+    posParams?: {
+        [name: string]: UrlSegment;
+    };
+};
+
+/**
+ * @description
+ *
+ * Represents a single URL segment.
+ *
+ * A UrlSegment is a part of a URL between the two slashes. It contains a path and the matrix
+ * parameters associated with the segment.
+ *
+ * @usageNotes
+ * ### Example
+ *
+ * ```
+ * @Component({templateUrl:'template.html'})
+ * class MyComponent {
+ *   constructor(router: Router) {
+ *     const tree: UrlTree = router.parseUrl('/team;id=33');
+ *     const g: UrlSegmentGroup = tree.root.children[PRIMARY_OUTLET];
+ *     const s: UrlSegment[] = g.segments;
+ *     s[0].path; // returns 'team'
+ *     s[0].parameters; // returns {id: 33}
+ *   }
+ * }
+ * ```
+ *
+ * @publicApi
+ */
+export declare class UrlSegment {
+    /** The path part of a URL segment */
+    path: string;
+    /** The matrix parameters associated with a segment */
+    parameters: {
+        [name: string]: string;
+    };
+    constructor(
+    /** The path part of a URL segment */
+    path: string, 
+    /** The matrix parameters associated with a segment */
+    parameters: {
+        [name: string]: string;
+    });
+    get parameterMap(): ParamMap;
+    /** @docsNotRequired */
+    toString(): string;
+}
+
+/**
+ * @description
+ *
+ * Represents the parsed URL segment group.
+ *
+ * See `UrlTree` for more information.
+ *
+ * @publicApi
+ */
+export declare class UrlSegmentGroup {
+    /** The URL segments of this group. See `UrlSegment` for more information */
+    segments: UrlSegment[];
+    /** The list of children of this group */
+    children: {
+        [key: string]: UrlSegmentGroup;
+    };
+    /** The parent node in the url tree */
+    parent: UrlSegmentGroup | null;
+    constructor(
+    /** The URL segments of this group. See `UrlSegment` for more information */
+    segments: UrlSegment[], 
+    /** The list of children of this group */
+    children: {
+        [key: string]: UrlSegmentGroup;
+    });
+    /** Whether the segment has child segments */
+    hasChildren(): boolean;
+    /** Number of child segments */
+    get numberOfChildren(): number;
+    /** @docsNotRequired */
+    toString(): string;
+}
+
+/**
+ * @description
+ *
+ * Serializes and deserializes a URL string into a URL tree.
+ *
+ * The url serialization strategy is customizable. You can
+ * make all URLs case insensitive by providing a custom UrlSerializer.
+ *
+ * See `DefaultUrlSerializer` for an example of a URL serializer.
+ *
+ * @publicApi
+ */
+export declare abstract class UrlSerializer {
+    /** Parse a url into a `UrlTree` */
+    abstract parse(url: string): UrlTree;
+    /** Converts a `UrlTree` into a url */
+    abstract serialize(tree: UrlTree): string;
+    static ɵfac: i0.ɵɵFactoryDeclaration<UrlSerializer, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<UrlSerializer>;
+}
+
+/**
+ * @description
+ *
+ * Represents the parsed URL.
+ *
+ * Since a router state is a tree, and the URL is nothing but a serialized state, the URL is a
+ * serialized tree.
+ * UrlTree is a data structure that provides a lot of affordances in dealing with URLs
+ *
+ * @usageNotes
+ * ### Example
+ *
+ * ```
+ * @Component({templateUrl:'template.html'})
+ * class MyComponent {
+ *   constructor(router: Router) {
+ *     const tree: UrlTree =
+ *       router.parseUrl('/team/33/(user/victor//support:help)?debug=true#fragment');
+ *     const f = tree.fragment; // return 'fragment'
+ *     const q = tree.queryParams; // returns {debug: 'true'}
+ *     const g: UrlSegmentGroup = tree.root.children[PRIMARY_OUTLET];
+ *     const s: UrlSegment[] = g.segments; // returns 2 segments 'team' and '33'
+ *     g.children[PRIMARY_OUTLET].segments; // returns 2 segments 'user' and 'victor'
+ *     g.children['support'].segments; // return 1 segment 'help'
+ *   }
+ * }
+ * ```
+ *
+ * @publicApi
+ */
+export declare class UrlTree {
+    /** The root segment group of the URL tree */
+    root: UrlSegmentGroup;
+    /** The query params of the URL */
+    queryParams: Params;
+    /** The fragment of the URL */
+    fragment: string | null;
+    get queryParamMap(): ParamMap;
+    /** @docsNotRequired */
+    toString(): string;
+}
+
+/**
+ * @publicApi
+ */
+export declare const VERSION: Version;
+
+/**
+ * Enables logging of all internal navigation events to the console.
+ * Extra logging might be useful for debugging purposes to inspect Router event sequence.
+ *
+ * @usageNotes
+ *
+ * Basic example of how you can enable debug tracing:
+ * ```
+ * const appRoutes: Routes = [];
+ * bootstrapApplication(AppComponent,
+ *   {
+ *     providers: [
+ *       provideRouter(appRoutes, withDebugTracing())
+ *     ]
+ *   }
+ * );
+ * ```
+ *
+ * @see `provideRouter`
+ *
+ * @returns A set of providers for use with `provideRouter`.
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare function withDebugTracing(): DebugTracingFeature;
+
+/**
+ * Disables initial navigation.
+ *
+ * Use if there is a reason to have more control over when the router starts its initial navigation
+ * due to some complex initialization logic.
+ *
+ * @usageNotes
+ *
+ * Basic example of how you can disable initial navigation:
+ * ```
+ * const appRoutes: Routes = [];
+ * bootstrapApplication(AppComponent,
+ *   {
+ *     providers: [
+ *       provideRouter(appRoutes, withDisabledInitialNavigation())
+ *     ]
+ *   }
+ * );
+ * ```
+ *
+ * @see `provideRouter`
+ *
+ * @returns A set of providers for use with `provideRouter`.
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare function withDisabledInitialNavigation(): DisabledInitialNavigationFeature;
+
+/**
+ * Configures initial navigation to start before the root component is created.
+ *
+ * The bootstrap is blocked until the initial navigation is complete. This value is required for
+ * [server-side rendering](guide/universal) to work.
+ *
+ * @usageNotes
+ *
+ * Basic example of how you can enable this navigation behavior:
+ * ```
+ * const appRoutes: Routes = [];
+ * bootstrapApplication(AppComponent,
+ *   {
+ *     providers: [
+ *       provideRouter(appRoutes, withEnabledBlockingInitialNavigation())
+ *     ]
+ *   }
+ * );
+ * ```
+ *
+ * @see `provideRouter`
+ *
+ * @publicApi
+ * @developerPreview
+ * @returns A set of providers for use with `provideRouter`.
+ */
+export declare function withEnabledBlockingInitialNavigation(): EnabledBlockingInitialNavigationFeature;
+
+/**
+ * Enables customizable scrolling behavior for router navigations.
+ *
+ * @usageNotes
+ *
+ * Basic example of how you can enable scrolling feature:
+ * ```
+ * const appRoutes: Routes = [];
+ * bootstrapApplication(AppComponent,
+ *   {
+ *     providers: [
+ *       provideRouter(appRoutes, withInMemoryScrolling())
+ *     ]
+ *   }
+ * );
+ * ```
+ *
+ * @see `provideRouter`
+ * @see `ViewportScroller`
+ *
+ * @publicApi
+ * @developerPreview
+ * @param options Set of configuration parameters to customize scrolling behavior, see
+ *     `InMemoryScrollingOptions` for additional information.
+ * @returns A set of providers for use with `provideRouter`.
+ */
+export declare function withInMemoryScrolling(options?: InMemoryScrollingOptions): InMemoryScrollingFeature;
+
+/**
+ * Allows to configure a preloading strategy to use. The strategy is configured by providing a
+ * reference to a class that implements a `PreloadingStrategy`.
+ *
+ * @usageNotes
+ *
+ * Basic example of how you can configure preloading:
+ * ```
+ * const appRoutes: Routes = [];
+ * bootstrapApplication(AppComponent,
+ *   {
+ *     providers: [
+ *       provideRouter(appRoutes, withPreloading(PreloadAllModules))
+ *     ]
+ *   }
+ * );
+ * ```
+ *
+ * @see `provideRouter`
+ *
+ * @param preloadingStrategy A reference to a class that implements a `PreloadingStrategy` that
+ *     should be used.
+ * @returns A set of providers for use with `provideRouter`.
+ *
+ * @publicApi
+ * @developerPreview
+ */
+declare function withPreloading(preloadingStrategy: Type<PreloadingStrategy>): PreloadingFeature;
+export { withPreloading }
+export { withPreloading as ɵwithPreloading }
+
+/**
+ * Allows to provide extra parameters to configure Router.
+ *
+ * @usageNotes
+ *
+ * Basic example of how you can provide extra configuration options:
+ * ```
+ * const appRoutes: Routes = [];
+ * bootstrapApplication(AppComponent,
+ *   {
+ *     providers: [
+ *       provideRouter(appRoutes, withRouterConfig({
+ *          onSameUrlNavigation: 'reload'
+ *       }))
+ *     ]
+ *   }
+ * );
+ * ```
+ *
+ * @see `provideRouter`
+ *
+ * @param options A set of parameters to configure Router, see `RouterConfigOptions` for
+ *     additional information.
+ * @returns A set of providers for use with `provideRouter`.
+ *
+ * @publicApi
+ * @developerPreview
+ */
+export declare function withRouterConfig(options: RouterConfigOptions): RouterConfigurationFeature;
+
+export declare function ɵassignExtraOptionsToRouter(opts: ExtraOptions, router: Router): void;
+
+/**
+ * This component is used internally within the router to be a placeholder when an empty
+ * router-outlet is needed. For example, with a config such as:
+ *
+ * `{path: 'parent', outlet: 'nav', children: [...]}`
+ *
+ * In order to render, there needs to be a component on this config, which will default
+ * to this `EmptyOutletComponent`.
+ */
+export declare class ɵEmptyOutletComponent {
+    static ɵfac: i0.ɵɵFactoryDeclaration<ɵEmptyOutletComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<ɵEmptyOutletComponent, "ng-component", never, {}, {}, never, never, true>;
+}
+
+/**
+ * Flattens single-level nested arrays.
+ */
+export declare function ɵflatten<T>(arr: T[][]): T[];
+
+export declare type ɵRestoredState = {
+    [k: string]: any;
+    navigationId: number;
+    ɵrouterPageId?: number;
+};
+
+export declare const ɵROUTER_PROVIDERS: Provider[];
 
 export { }
