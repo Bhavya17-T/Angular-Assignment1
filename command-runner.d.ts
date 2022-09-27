@@ -5,7 +5,5 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-export { VERSION } from '../../src/utilities/version';
-export default function (options: {
-    cliArgs: string[];
-}): Promise<number>;
+import { logging } from '@angular-devkit/core';
+export declare function runCommand(args: string[], logger: logging.Logger): Promise<number>;
