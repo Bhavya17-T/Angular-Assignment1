@@ -1,8 +1,5 @@
-Angular
-=======
+# Angular CLI - The CLI tool for Angular.
 
-The sources for this package are in the main [Angular](https://github.com/angular/angular) repo. Please file issues and pull requests against that repo.
+The sources for this package are in the [Angular CLI](https://github.com/angular/angular-cli) repository. Please file issues and pull requests against that repository.
 
-Usage information and reference details can be found in [Angular documentation](https://angular.io/docs).
-
-License: MIT
+Usage information and reference details can be found in repository [README](../../../README.md) file.
