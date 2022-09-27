@@ -1,25 +1,25 @@
 {
-  "$schema": "../src/builders-schema.json",
+  "$schema": "../architect/src/builders-schema.json",
   "builders": {
-    "true": {
-      "implementation": "./true",
-      "schema": "./noop-schema.json",
-      "description": "Always succeed."
+    "build": {
+      "implementation": "./src/webpack",
+      "schema": "./src/webpack/schema.json",
+      "description": "Build a webpack app."
     },
-    "false": {
-      "implementation": "./false",
-      "schema": "./noop-schema.json",
-      "description": "Always fails."
+    "webpack": {
+      "implementation": "./src/webpack",
+      "schema": "./src/webpack/schema.json",
+      "description": "Build a webpack app."
     },
-    "allOf": {
-      "implementation": "./all-of",
-      "schema": "./operator-schema.json",
-      "description": "A builder that executes many builders in parallel, and succeed if both succeeds."
+    "dev-server": {
+      "implementation": "./src/webpack-dev-server",
+      "schema": "./src/webpack-dev-server/schema.json",
+      "description": "Serve a webpack app."
     },
-    "concat": {
-      "implementation": "./concat",
-      "schema": "./operator-schema.json",
-      "description": "A builder that executes many builders one after the other, and stops when one fail. It will succeed if all builders succeeds (and return the last output)"
+    "webpack-dev-server": {
+      "implementation": "./src/webpack-dev-server",
+      "schema": "./src/webpack-dev-server/schema.json",
+      "description": "Serve a webpack app."
     }
   }
 }

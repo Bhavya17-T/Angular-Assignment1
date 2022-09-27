@@ -1,0 +1,14 @@
+{
+  "targets": {
+    "restaurant-order-managem-684b3": {
+      "hosting": {
+        "restaurant-order-management-system": [
+          "restaurant-order-managem-684b3"
+        ]
+      }
+    }
+  },
+  "projects": {
+    "default": "restaurant-order-managem-684b3"
+  }
+}

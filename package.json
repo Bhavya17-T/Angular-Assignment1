@@ -1,89 +1,40 @@
 {
-  "name": "@angular/router",
-  "version": "14.2.2",
-  "description": "Angular - the routing library",
-  "keywords": [
-    "angular",
-    "router"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/angular/angular.git",
-    "directory": "packages/router"
+  "name": "restaurant-order-management-system",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"
   },
-  "author": "angular",
-  "license": "MIT",
-  "engines": {
-    "node": "^14.15.0 || >=16.10.0"
-  },
-  "bugs": {
-    "url": "https://github.com/angular/angular/issues"
-  },
-  "homepage": "https://github.com/angular/angular/tree/main/packages/router",
+  "private": true,
   "dependencies": {
-    "tslib": "^2.3.0"
+    "@angular/animations": "^14.2.0",
+    "@angular/common": "^14.2.0",
+    "@angular/compiler": "^14.2.0",
+    "@angular/core": "^14.2.0",
+    "@angular/fire": "^7.4.1",
+    "@angular/forms": "^14.2.0",
+    "@angular/platform-browser": "^14.2.0",
+    "@angular/platform-browser-dynamic": "^14.2.0",
+    "@angular/router": "^14.2.0",
+    "firebase": "^9.10.0",
+    "rxjs": "~7.5.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.11.4"
   },
-  "peerDependencies": {
-    "@angular/core": "14.2.2",
-    "@angular/common": "14.2.2",
-    "@angular/platform-browser": "14.2.2",
-    "rxjs": "^6.5.3 || ^7.4.0"
-  },
-  "ng-update": {
-    "packageGroup": [
-      "@angular/core",
-      "@angular/bazel",
-      "@angular/common",
-      "@angular/compiler",
-      "@angular/compiler-cli",
-      "@angular/animations",
-      "@angular/elements",
-      "@angular/platform-browser",
-      "@angular/platform-browser-dynamic",
-      "@angular/forms",
-      "@angular/platform-server",
-      "@angular/upgrade",
-      "@angular/router",
-      "@angular/language-service",
-      "@angular/localize",
-      "@angular/service-worker"
-    ]
-  },
-  "sideEffects": false,
-  "fesm2020": "./fesm2020/router.mjs",
-  "fesm2015": "./fesm2015/router.mjs",
-  "esm2020": "./esm2020/router.mjs",
-  "typings": "./index.d.ts",
-  "module": "./fesm2015/router.mjs",
-  "es2020": "./fesm2020/router.mjs",
-  "type": "module",
-  "exports": {
-    "./package.json": {
-      "default": "./package.json"
-    },
-    ".": {
-      "types": "./index.d.ts",
-      "esm2020": "./esm2020/router.mjs",
-      "es2020": "./fesm2020/router.mjs",
-      "es2015": "./fesm2015/router.mjs",
-      "node": "./fesm2015/router.mjs",
-      "default": "./fesm2020/router.mjs"
-    },
-    "./testing": {
-      "types": "./testing/index.d.ts",
-      "esm2020": "./esm2020/testing/testing.mjs",
-      "es2020": "./fesm2020/testing.mjs",
-      "es2015": "./fesm2015/testing.mjs",
-      "node": "./fesm2015/testing.mjs",
-      "default": "./fesm2020/testing.mjs"
-    },
-    "./upgrade": {
-      "types": "./upgrade/index.d.ts",
-      "esm2020": "./esm2020/upgrade/upgrade.mjs",
-      "es2020": "./fesm2020/upgrade.mjs",
-      "es2015": "./fesm2015/upgrade.mjs",
-      "node": "./fesm2015/upgrade.mjs",
-      "default": "./fesm2020/upgrade.mjs"
-    }
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^14.2.2",
+    "@angular/cli": "~14.2.2",
+    "@angular/compiler-cli": "^14.2.0",
+    "@types/jasmine": "~4.0.0",
+    "jasmine-core": "~4.3.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.1.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.0.0",
+    "typescript": "~4.7.2"
   }
 }
